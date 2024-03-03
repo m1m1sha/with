@@ -1,0 +1,6 @@
+{
+    "recommendations": [
+        "redjue.git-commit-plugin",
+        "rust-lang.rust-analyzer"
+    ]
+}
