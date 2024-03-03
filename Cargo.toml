@@ -1,0 +1,7 @@
+[package]
+name = "with"
+version = "0.0.0"
+edition = "2021"
+authors = ["m1m1sha"]
+
+[dependencies]
