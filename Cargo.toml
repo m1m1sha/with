@@ -8,9 +8,13 @@ authors = ["m1m1sha"]
 
 
 [workspace]
-members = ["crates/packet", "crates/tun"]
+members = ["crates/packet", "crates/tun", "crates/utils"]
 
 [workspace.dependencies]
+packet = { path = "crates/packet" }
+tun = { path = "crates/tun" }
+utils = { path = "crates/utils" }
+winreg = "^0.52"
 windows = "^0.54"
 libloading = "^0.8"
 byteorder = "^1"

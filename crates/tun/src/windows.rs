@@ -93,6 +93,9 @@ impl Device {
         log::set_default_logger_if_unset(&win_tun);
         let _ = Self::delete_with_name_before_new(&win_tun, &name_utf16);
 
+        if utils::root::is_elevated() {
+            let _ = util::delete_tun_reg();
+        }
         let guid = GUID::new()?.to_u128();
         let guid_struct: wintun_raw::GUID = unsafe { std::mem::transmute(GUID::from_u128(guid)) };
         let guid_ptr = &guid_struct as *const wintun_raw::GUID;

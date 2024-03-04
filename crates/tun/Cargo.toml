@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 tracing = { workspace = true }
+utils = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 libloading = { workspace = true }
@@ -22,3 +23,4 @@ windows = { workspace = true, features = [
     "Win32_System_Ioctl",
     "Win32_System_IO",
 ] }
+winreg = { workspace = true }

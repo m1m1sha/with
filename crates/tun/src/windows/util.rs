@@ -15,6 +15,7 @@ use windows::{
         Networking::WinSock::AF_UNSPEC,
     },
 };
+use winreg::{enums::HKEY_LOCAL_MACHINE, RegKey};
 
 use super::wintun_raw;
 
@@ -100,4 +101,22 @@ pub fn luid_to_alias(luid: &NET_LUID_LH) -> Result<Vec<u16>> {
         WIN32_ERROR(0) => Ok(alias),
         err => Err(std::io::Error::from_raw_os_error(err.0 as i32)),
     }
+}
+
+pub fn delete_tun_reg() -> std::io::Result<()> {
+    let hklm = winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE);
+    let network_list =
+        hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList\\Profiles")?;
+
+    for (name) in network_list.enum_keys().map(|x| x.unwrap()) {
+        println!("{}", name);
+
+        let adapter = network_list.open_subkey(name.clone())?;
+        let value: String = adapter.get_value("ProfileName")?;
+        if value.trim().to_ascii_lowercase().contains("with_tun") {
+            network_list.delete_subkey(name)?;
+        }
+    }
+
+    Ok(())
 }
