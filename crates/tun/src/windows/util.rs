@@ -108,13 +108,11 @@ pub fn delete_tun_reg() -> std::io::Result<()> {
     let network_list =
         hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList\\Profiles")?;
 
-    for (name) in network_list.enum_keys().map(|x| x.unwrap()) {
-        println!("{}", name);
-
-        let adapter = network_list.open_subkey(name.clone())?;
-        let value: String = adapter.get_value("ProfileName")?;
-        if value.trim().to_ascii_lowercase().contains("with_tun") {
-            network_list.delete_subkey(name)?;
+    for guid in network_list.enum_keys().map(|x| x.unwrap()) {
+        let adapter = network_list.open_subkey(guid.clone())?;
+        let profile: String = adapter.get_value("ProfileName")?;
+        if profile.trim().to_ascii_lowercase().contains("with_tun") {
+            network_list.delete_subkey(guid)?;
         }
     }
 
