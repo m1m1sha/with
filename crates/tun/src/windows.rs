@@ -1,4 +1,5 @@
 use std::{
+    hash::Hash,
     io::{Error, ErrorKind, Result},
     net::Ipv4Addr,
     slice,
@@ -7,7 +8,7 @@ use std::{
 
 use libloading::Library;
 use windows::{
-    core::{PCSTR, PCWSTR},
+    core::{GUID, PCSTR, PCWSTR},
     Win32::{
         Foundation::{
             CloseHandle, GetLastError, ERROR_NO_MORE_ITEMS, FALSE, HANDLE, WAIT_EVENT, WAIT_FAILED,
@@ -87,61 +88,27 @@ impl Device {
             ));
         }
 
+        let description = util::encode_utf16("With Tun Adapter");
+
         log::set_default_logger_if_unset(&win_tun);
         let _ = Self::delete_with_name_before_new(&win_tun, &name_utf16);
 
-        let adapter = unsafe { win_tun.WintunOpenAdapter(name_utf16.as_ptr()) };
+        let guid = GUID::new()?.to_u128();
+        let guid_struct: wintun_raw::GUID = unsafe { std::mem::transmute(GUID::from_u128(guid)) };
+        let guid_ptr = &guid_struct as *const wintun_raw::GUID;
+
+        let adapter = unsafe {
+            win_tun.WintunCreateAdapter(name_utf16.as_ptr(), description.as_ptr(), guid_ptr)
+        };
+
         if adapter.is_null() {
-            tracing::error!("adapter.is_null {:?}", Error::last_os_error());
+            tracing::error!("adapter is_null {:?}", Error::last_os_error());
             return Err(Error::new(ErrorKind::Other, "Failed to crate adapter"));
         }
 
-        let mut guid = None;
-        util::get_adapters_addresses(|address: IP_ADAPTER_ADDRESSES_LH| {
-            let friendly_name = PCWSTR(address.FriendlyName.0 as *const u16);
-            let friendly_name = unsafe {
-                match friendly_name.to_string() {
-                    Ok(name) => name,
-                    Err(_) => {
-                        return Err(Error::new(
-                            ErrorKind::Other,
-                            format!("get adapter address error"),
-                        ))
-                    }
-                }
-            };
-
-            if friendly_name == name {
-                let adapter_name = unsafe {
-                    match address.AdapterName.to_string() {
-                        Ok(name) => name,
-                        Err(_) => {
-                            return Err(Error::new(
-                                ErrorKind::Other,
-                                format!("get adapter name error"),
-                            ))
-                        }
-                    }
-                };
-                let adapter_name_utf16: Vec<u16> = adapter_name
-                    .encode_utf16()
-                    .chain(std::iter::once(0))
-                    .collect();
-                let adapter_name_ptr: *const u16 = adapter_name_utf16.as_ptr();
-                let adapter = unsafe { CLSIDFromString(PCWSTR(adapter_name_ptr))? };
-                guid = Some(adapter);
-            }
-            Ok(())
-        })?;
-
-        let guid = match guid.ok_or("Unable to find matching GUID") {
-            Ok(guid) => guid.to_u128(),
-            Err(e) => return Err(Error::new(ErrorKind::Other, e)),
-        };
-
         let session = unsafe { win_tun.WintunStartSession(adapter, MAX_RING_CAPACITY) };
         if session.is_null() {
-            tracing::error!("session.is_null {:?}", Error::last_os_error());
+            tracing::error!("session is_null {:?}", Error::last_os_error());
             return Err(Error::new(ErrorKind::Other, "WintunStartSession failed"));
         }
 
@@ -271,7 +238,7 @@ impl Device {
         let adapter = unsafe { win_tun.WintunOpenAdapter(name_utf16.as_ptr()) };
         if adapter.is_null() {
             tracing::error!(
-                "delete_for_name adapter.is_null {:?}",
+                "Could not find and clear the adapter for that name, {:?}",
                 Error::last_os_error()
             );
             return Err(Error::new(ErrorKind::Other, "Failed to open adapter"));
