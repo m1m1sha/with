@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 tracing = { workspace = true }
-thiserror = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 libloading = { workspace = true }

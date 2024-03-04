@@ -11,10 +11,9 @@ authors = ["m1m1sha"]
 members = ["crates/packet", "crates/tun"]
 
 [workspace.dependencies]
+windows = "^0.54"
+libloading = "^0.8"
 byteorder = "^1"
 tracing = "^0.1"
 tracing-subscriber = "^0.3"
-thiserror = "^1"
-windows = "^0.54"
-libloading = "^0.8"
 encoding = "^0.2"
