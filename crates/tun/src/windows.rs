@@ -56,7 +56,9 @@ unsafe impl Send for Device {}
 unsafe impl Sync for Device {}
 
 impl Device {
-    pub fn new(name: String, path: String) -> Result<Self> {
+    /// wintun.dll 路径默认为运行目录
+    pub fn new(name: String, dll_path: Option<String>) -> Result<Self> {
+        let path = dll_path.unwrap_or("wintun.dll".to_owned());
         let library = match unsafe { Library::new(path.clone()) } {
             Ok(library) => library,
             Err(e) => {
