@@ -7,4 +7,6 @@ pub mod device;
 #[cfg(target_os = "windows")]
 mod windows;
 #[cfg(target_os = "windows")]
+pub use windows::netsh;
+#[cfg(target_os = "windows")]
 pub use windows::Device;

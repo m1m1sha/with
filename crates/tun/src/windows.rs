@@ -1,5 +1,4 @@
 use std::{
-    hash::Hash,
     io::{Error, ErrorKind, Result},
     net::Ipv4Addr,
     slice,
@@ -8,17 +7,13 @@ use std::{
 
 use libloading::Library;
 use windows::{
-    core::{GUID, PCSTR, PCWSTR},
+    core::{GUID, PCSTR},
     Win32::{
         Foundation::{
             CloseHandle, GetLastError, ERROR_NO_MORE_ITEMS, FALSE, HANDLE, WAIT_EVENT, WAIT_FAILED,
             WAIT_OBJECT_0,
         },
-        NetworkManagement::IpHelper::IP_ADAPTER_ADDRESSES_LH,
-        System::{
-            Com::CLSIDFromString,
-            Threading::{CreateEventA, SetEvent, WaitForMultipleObjects, INFINITE},
-        },
+        System::Threading::{CreateEventA, SetEvent, WaitForMultipleObjects, INFINITE},
     },
 };
 
@@ -94,6 +89,7 @@ impl Device {
         let _ = Self::delete_with_name_before_new(&win_tun, &name_utf16);
 
         if utils::root::is_elevated() {
+            println!("elevated");
             let _ = util::delete_tun_reg();
         }
         let guid = GUID::new()?.to_u128();
