@@ -1,7 +1,11 @@
-use std::{net::Ipv4Addr, os::windows::process::CommandExt};
+use std::{
+    io::{Error, ErrorKind, Result},
+    net::Ipv4Addr,
+    os::windows::process::CommandExt,
+};
 use windows::Win32::System::Threading::CREATE_NO_WINDOW;
 
-pub fn cmd(args: &[&str]) -> std::io::Result<Vec<u8>> {
+pub fn cmd(args: &[&str]) -> Result<Vec<u8>> {
     let out = std::process::Command::new("netsh")
         .creation_flags(CREATE_NO_WINDOW.0)
         .args(args)
@@ -13,19 +17,19 @@ pub fn cmd(args: &[&str]) -> std::io::Result<Vec<u8>> {
             &out.stderr
         });
         let info = format!("netsh failed with: \"{}\"", err);
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, info));
+        return Err(Error::new(ErrorKind::Other, info));
     }
     Ok(out.stdout)
 }
 
 /// 设置网卡mtu
-pub fn set_adapter_mtu(name: &str, mtu: usize) -> std::io::Result<()> {
+pub fn set_adapter_mtu(index: u32, mtu: u32) -> Result<()> {
     let args = &[
         "interface",
         "ipv4",
         "set",
         "subinterface",
-        &format!("\"{}\"", name),
+        &format!("{}", index),
         &format!("mtu={}", mtu),
         "store=persistent",
     ];
@@ -34,7 +38,7 @@ pub fn set_adapter_mtu(name: &str, mtu: usize) -> std::io::Result<()> {
 }
 
 /// 设置网卡名称
-pub fn set_interface_name(old_name: &str, new_name: &str) -> std::io::Result<()> {
+pub fn set_interface_name(old_name: &str, new_name: &str) -> Result<()> {
     let args = &[
         "interface",
         "set",
@@ -46,15 +50,15 @@ pub fn set_interface_name(old_name: &str, new_name: &str) -> std::io::Result<()>
     Ok(())
 }
 
-// 清楚缓存
-pub fn delete_cache() -> std::io::Result<()> {
+// 清除缓存
+pub fn delete_cache() -> Result<()> {
     let args = &["interface", "ip", "delete", "destinationcache"];
     cmd(args)?;
     Ok(())
 }
 
 /// 设置网卡ip
-pub fn set_interface_ip(index: u32, address: &Ipv4Addr, netmask: &Ipv4Addr) -> std::io::Result<()> {
+pub fn set_interface_ip(index: u32, address: &Ipv4Addr, netmask: &Ipv4Addr) -> Result<()> {
     let args = &[
         "interface",
         "ip",
@@ -70,7 +74,7 @@ pub fn set_interface_ip(index: u32, address: &Ipv4Addr, netmask: &Ipv4Addr) -> s
 }
 
 /// 设置网卡跃点
-pub fn set_interface_metric(index: u32, metric: u16) -> std::io::Result<()> {
+pub fn set_interface_metric(index: u32, metric: u16) -> Result<()> {
     let args = &[
         "interface",
         "ip",
@@ -84,7 +88,7 @@ pub fn set_interface_metric(index: u32, metric: u16) -> std::io::Result<()> {
 }
 
 /// 禁用ipv6
-pub fn disabled_ipv6(index: u32) -> std::io::Result<()> {
+pub fn disabled_ipv6(index: u32) -> Result<()> {
     let args = &[
         "interface",
         "ipv6",
@@ -104,7 +108,7 @@ pub fn add_route(
     netmask: Ipv4Addr,
     gateway: Ipv4Addr,
     metric: u16,
-) -> std::io::Result<()> {
+) -> Result<()> {
     let args = &[
         "route",
         "add",
@@ -127,7 +131,7 @@ pub fn delete_route(
     dest: Ipv4Addr,
     netmask: Ipv4Addr,
     gateway: Ipv4Addr,
-) -> std::io::Result<()> {
+) -> Result<()> {
     let args = &[
         "route",
         "delete",

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{io::Result, sync::Arc};
 
 use windows::{
     core::GUID,
@@ -28,9 +28,9 @@ pub fn decode_utf16(string: &[u16]) -> String {
     String::from_utf16_lossy(&string[..end])
 }
 
-pub(crate) fn get_adapters_addresses<F>(mut callback: F) -> std::io::Result<()>
+pub(crate) fn get_adapters_addresses<F>(mut callback: F) -> Result<()>
 where
-    F: FnMut(IP_ADAPTER_ADDRESSES_LH) -> std::io::Result<()>,
+    F: FnMut(IP_ADAPTER_ADDRESSES_LH) -> Result<()>,
 {
     let mut size = 0;
     let flags = GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_GATEWAYS;
@@ -74,7 +74,7 @@ pub(crate) fn get_adapter_luid(
     unsafe { std::mem::transmute(luid) }
 }
 
-pub fn luid_to_index(luid: &NET_LUID_LH) -> std::io::Result<u32> {
+pub fn luid_to_index(luid: &NET_LUID_LH) -> Result<u32> {
     let mut index = 0;
 
     match unsafe { ConvertInterfaceLuidToIndex(luid, &mut index) } {
@@ -83,7 +83,7 @@ pub fn luid_to_index(luid: &NET_LUID_LH) -> std::io::Result<u32> {
     }
 }
 
-pub fn luid_to_guid(luid: &NET_LUID_LH) -> std::io::Result<GUID> {
+pub fn luid_to_guid(luid: &NET_LUID_LH) -> Result<GUID> {
     let mut guid = unsafe { std::mem::zeroed() };
 
     match unsafe { ConvertInterfaceLuidToGuid(luid, &mut guid) } {
@@ -92,7 +92,7 @@ pub fn luid_to_guid(luid: &NET_LUID_LH) -> std::io::Result<GUID> {
     }
 }
 
-pub fn luid_to_alias(luid: &NET_LUID_LH) -> std::io::Result<Vec<u16>> {
+pub fn luid_to_alias(luid: &NET_LUID_LH) -> Result<Vec<u16>> {
     // IF_MAX_STRING_SIZE + 1
     let mut alias = vec![0; 257];
 

@@ -1,4 +1,6 @@
 use std::{
+    io::{Error, ErrorKind, Result},
+    net::Ipv4Addr,
     slice,
     sync::{Arc, OnceLock},
 };
@@ -7,13 +9,20 @@ use libloading::Library;
 use windows::{
     core::{PCSTR, PCWSTR},
     Win32::{
-        Foundation::{CloseHandle, GetLastError, ERROR_NO_MORE_ITEMS, FALSE, HANDLE, WIN32_ERROR},
+        Foundation::{
+            CloseHandle, GetLastError, ERROR_NO_MORE_ITEMS, FALSE, HANDLE, WAIT_EVENT, WAIT_FAILED,
+            WAIT_OBJECT_0,
+        },
         NetworkManagement::IpHelper::IP_ADAPTER_ADDRESSES_LH,
-        System::{Com::CLSIDFromString, Threading::CreateEventA},
+        System::{
+            Com::CLSIDFromString,
+            Threading::{CreateEventA, SetEvent, WaitForMultipleObjects, INFINITE},
+        },
     },
 };
 
-pub mod device;
+use crate::device::IFace;
+
 pub mod log;
 pub mod netsh;
 pub mod packet;
@@ -47,12 +56,12 @@ unsafe impl Send for Device {}
 unsafe impl Sync for Device {}
 
 impl Device {
-    pub fn new(name: String, path: String) -> std::io::Result<Self> {
+    pub fn new(name: String, path: String) -> Result<Self> {
         let library = match unsafe { Library::new(path.clone()) } {
             Ok(library) => library,
             Err(e) => {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
+                return Err(Error::new(
+                    ErrorKind::Other,
                     format!("wintun.dll not found in path: {}, {:?}", path, e),
                 ));
             }
@@ -61,8 +70,8 @@ impl Device {
         let win_tun = match unsafe { wintun_raw::wintun::from_library(library) } {
             Ok(win_tun) => Arc::new(win_tun),
             Err(e) => {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
+                return Err(Error::new(
+                    ErrorKind::Other,
                     format!("library error {:?} ", e),
                 ));
             }
@@ -70,8 +79,8 @@ impl Device {
 
         let name_utf16 = util::encode_utf16(&name);
         if name_utf16.len() > MAX_POOL {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
+            return Err(Error::new(
+                ErrorKind::Other,
                 format!("too long {}:{:?}", MAX_POOL, name),
             ));
         }
@@ -81,11 +90,8 @@ impl Device {
 
         let adapter = unsafe { win_tun.WintunOpenAdapter(name_utf16.as_ptr()) };
         if adapter.is_null() {
-            tracing::error!("adapter.is_null {:?}", std::io::Error::last_os_error());
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Failed to crate adapter",
-            ));
+            tracing::error!("adapter.is_null {:?}", Error::last_os_error());
+            return Err(Error::new(ErrorKind::Other, "Failed to crate adapter"));
         }
 
         let mut guid = None;
@@ -95,8 +101,8 @@ impl Device {
                 match friendly_name.to_string() {
                     Ok(name) => name,
                     Err(_) => {
-                        return Err(std::io::Error::new(
-                            std::io::ErrorKind::Other,
+                        return Err(Error::new(
+                            ErrorKind::Other,
                             format!("get adapter address error"),
                         ))
                     }
@@ -108,8 +114,8 @@ impl Device {
                     match address.AdapterName.to_string() {
                         Ok(name) => name,
                         Err(_) => {
-                            return Err(std::io::Error::new(
-                                std::io::ErrorKind::Other,
+                            return Err(Error::new(
+                                ErrorKind::Other,
                                 format!("get adapter name error"),
                             ))
                         }
@@ -128,16 +134,13 @@ impl Device {
 
         let guid = match guid.ok_or("Unable to find matching GUID") {
             Ok(guid) => guid.to_u128(),
-            Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::Other, e)),
+            Err(e) => return Err(Error::new(ErrorKind::Other, e)),
         };
 
         let session = unsafe { win_tun.WintunStartSession(adapter, MAX_RING_CAPACITY) };
         if session.is_null() {
-            tracing::error!("session.is_null {:?}", std::io::Error::last_os_error());
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "WintunStartSession failed",
-            ));
+            tracing::error!("session.is_null {:?}", Error::last_os_error());
+            return Err(Error::new(ErrorKind::Other, "WintunStartSession failed"));
         }
 
         let shutdown_event = unsafe { CreateEventA(None, FALSE, FALSE, PCSTR::null())? };
@@ -158,7 +161,7 @@ impl Device {
             adapter: UnsafeHandle(adapter),
         })
     }
-    pub fn try_receive(self: &Arc<Self>) -> std::io::Result<Option<packet::Packet>> {
+    pub fn try_receive(self: &Arc<Self>) -> Result<Option<packet::Packet>> {
         let mut size = 0u32;
 
         let ptr = unsafe {
@@ -172,10 +175,7 @@ impl Device {
             if ERROR_NO_MORE_ITEMS == unsafe { GetLastError() } {
                 Ok(None)
             } else {
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "try_receive failed",
-                ))
+                Err(Error::new(ErrorKind::Other, "try_receive failed"))
             }
         } else {
             Ok(Some(packet::Packet {
@@ -187,27 +187,161 @@ impl Device {
             }))
         }
     }
+    pub fn receive_blocking(self: &Arc<Self>) -> Result<packet::Packet> {
+        loop {
+            //Try 5 times to receive without blocking so we don't have to issue a syscall to wait
+            //for the event if packets are being received at a rapid rate
+            for _ in 0..5 {
+                match self.try_receive() {
+                    Err(err) => return Err(err),
+                    Ok(Some(packet)) => return Ok(packet),
+                    Ok(None) => {
+                        //Try again
+                        continue;
+                    }
+                }
+            }
+            //Wait on both the read handle and the shutdown handle so that we stop when requested
+            let handles = [self.get_read_wait_event()?, self.shutdown_event];
+            let result = unsafe {
+                //SAFETY: We abide by the requirements of WaitForMultipleObjects, handles is a
+                //pointer to valid, aligned, stack memory
+                WaitForMultipleObjects(&handles, FALSE, INFINITE)
+            };
+            const WAIT_OBJECT_1: WAIT_EVENT = WAIT_EVENT(WAIT_OBJECT_0.0 + 1);
+            match result {
+                WAIT_FAILED => return Err(Error::new(ErrorKind::Other, "WAIT_FAILED")),
+                WAIT_OBJECT_0 => {
+                    //We have data!
+                    continue;
+                }
+                WAIT_OBJECT_1 => {
+                    //Shutdown event triggered
+                    return Err(Error::new(ErrorKind::Other, "Shutdown event triggered"));
+                }
+                _ => {
+                    //This should never happen
+                    // panic!(
+                    //     "WaitForMultipleObjects returned unexpected value {:?}",
+                    //     result
+                    // );
+                    continue;
+                }
+            }
+        }
+    }
+    pub fn allocate_send_packet(self: &Arc<Self>, size: u16) -> Result<packet::Packet> {
+        let ptr = unsafe {
+            self.win_tun
+                .WintunAllocateSendPacket(self.session.0, size as u32)
+        };
+        if ptr.is_null() {
+            Err(Error::new(ErrorKind::Other, "allocate_send_packet failed"))
+        } else {
+            Ok(packet::Packet {
+                //SAFETY: ptr is non null, aligned for u8, and readable for up to size bytes (which
+                //must be less than isize::MAX because bytes is a u16
+                bytes: unsafe { slice::from_raw_parts_mut(ptr, size as usize) },
+                device: self.clone(),
+                kind: packet::Kind::SendPacketPending,
+            })
+        }
+    }
+    pub fn send_packet(&self, mut packet: packet::Packet) {
+        assert!(matches!(packet.kind, packet::Kind::SendPacketPending));
+
+        unsafe {
+            self.win_tun
+                .WintunSendPacket(self.session.0, packet.bytes.as_ptr())
+        };
+        //Mark the packet at sent
+        packet.kind = packet::Kind::SendPacketSent;
+    }
+    pub fn get_read_wait_event(&self) -> Result<HANDLE> {
+        Ok(*self.read_event.get_or_init(|| unsafe {
+            HANDLE(self.win_tun.WintunGetReadWaitEvent(self.session.0) as _)
+        }))
+    }
     pub fn delete_with_name_before_new(
         win_tun: &Arc<wintun_raw::wintun>,
         name_utf16: &Vec<u16>,
-    ) -> std::io::Result<()> {
+    ) -> Result<()> {
         let adapter = unsafe { win_tun.WintunOpenAdapter(name_utf16.as_ptr()) };
         if adapter.is_null() {
             tracing::error!(
                 "delete_for_name adapter.is_null {:?}",
-                std::io::Error::last_os_error()
+                Error::last_os_error()
             );
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Failed to open adapter",
-            ));
+            return Err(Error::new(ErrorKind::Other, "Failed to open adapter"));
         }
         unsafe { win_tun.WintunCloseAdapter(adapter) };
         unsafe { win_tun.WintunDeleteDriver() };
         Ok(())
     }
 }
+impl IFace for Device {
+    fn version(&self) -> Result<String> {
+        let version = unsafe { self.win_tun.WintunGetRunningDriverVersion() };
+        if version == 0 {
+            return Err(Error::new(
+                ErrorKind::Other,
+                "WintunGetRunningDriverVersion",
+            ));
+        } else {
+            Ok(format!("{}.{}", (version >> 16) & 0xFFFF, version & 0xFFFF))
+        }
+    }
+    fn name(&self) -> Result<String> {
+        let luid = self.luid;
+        util::luid_to_alias(&unsafe { std::mem::transmute(luid) })
+            .map(|name| util::decode_utf16(&name))
+    }
 
+    fn shutdown(&self) -> Result<()> {
+        unsafe { SetEvent(self.shutdown_event)? };
+        Ok(())
+    }
+
+    fn set_ip(&self, address: Ipv4Addr, mask: Ipv4Addr) -> Result<()> {
+        netsh::set_interface_ip(self.index, &address, &mask)
+    }
+
+    fn mtu(&self) -> Result<u32> {
+        Err(Error::from(ErrorKind::Unsupported))
+    }
+
+    fn set_mtu(&self, value: u32) -> Result<()> {
+        netsh::set_adapter_mtu(self.index, value)
+    }
+
+    fn add_route(&self, dest: Ipv4Addr, netmask: Ipv4Addr, metric: u16) -> Result<()> {
+        netsh::add_route(self.index, dest, netmask, Ipv4Addr::UNSPECIFIED, metric)?;
+        netsh::delete_cache()
+    }
+
+    fn delete_route(&self, dest: Ipv4Addr, netmask: Ipv4Addr) -> Result<()> {
+        netsh::delete_route(self.index, dest, netmask, Ipv4Addr::UNSPECIFIED)?;
+        netsh::delete_cache()
+    }
+
+    fn read(self: &Arc<Self>, buf: &mut [u8]) -> Result<usize> {
+        let packet = self.receive_blocking()?;
+        let packet = packet.bytes();
+        let len = packet.len();
+        if len > buf.len() {
+            return Err(Error::new(ErrorKind::InvalidData, "data too long"));
+        }
+        buf[..len].copy_from_slice(packet);
+        Ok(len)
+    }
+
+    fn write(self: &Arc<Self>, buf: &[u8]) -> Result<usize> {
+        let mut packet = self.allocate_send_packet(buf.len() as u16)?;
+        packet.bytes_mut().copy_from_slice(buf);
+        self.send_packet(packet);
+        Ok(buf.len())
+    }
+}
 impl Drop for Device {
     fn drop(&mut self) {
         if let Err(e) = unsafe { CloseHandle(self.shutdown_event) } {

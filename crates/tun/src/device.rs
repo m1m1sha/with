@@ -1,4 +1,4 @@
-use std::{io::Result, net::Ipv4Addr};
+use std::{io::Result, net::Ipv4Addr, sync::Arc};
 
 pub trait IFace {
     fn version(&self) -> Result<String>;
@@ -9,6 +9,6 @@ pub trait IFace {
     fn set_mtu(&self, value: u32) -> Result<()>;
     fn add_route(&self, dest: Ipv4Addr, netmask: Ipv4Addr, metric: u16) -> Result<()>;
     fn delete_route(&self, dest: Ipv4Addr, netmask: Ipv4Addr) -> Result<()>;
-    fn read(&self, buf: &mut [u8]) -> Result<usize>;
-    fn write(&self, buf: &[u8]) -> Result<usize>;
+    fn read(self: &Arc<Self>, buf: &mut [u8]) -> Result<usize>;
+    fn write(self: &Arc<Self>, buf: &[u8]) -> Result<usize>;
 }
