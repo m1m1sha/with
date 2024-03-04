@@ -5,3 +5,10 @@ edition = "2021"
 authors = ["m1m1sha"]
 
 [dependencies]
+
+
+[workspace]
+members = ["crates/packet"]
+
+[workspace.dependencies]
+byteorder = "^1"
