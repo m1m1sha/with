@@ -5,4 +5,6 @@
 // https://github.com/lbl8603/vnt
 pub mod device;
 #[cfg(target_os = "windows")]
-pub mod windows;
+mod windows;
+#[cfg(target_os = "windows")]
+pub use windows::Device;
