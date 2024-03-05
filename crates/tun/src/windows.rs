@@ -346,6 +346,9 @@ impl Drop for Device {
                         profile_guid = Some(g);
                     } else {
                         profile_guid = None;
+                        tracing::warn!(
+                            "Multiple network list configuration file changes have occurred"
+                        );
                         break;
                     }
                 }
