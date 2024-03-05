@@ -335,9 +335,9 @@ impl Drop for Device {
 
         let after_profiles = util::get_profiles().unwrap_or_default();
 
-        let mut profile_guid = None;
-
         if utils::root::is_elevated() {
+            let mut profile_guid: Option<String> = None;
+
             // 仅当只存在一个网卡注册表有区别时
             for (g, _) in after_profiles {
                 if !self.profiles.contains_key(&g) {
