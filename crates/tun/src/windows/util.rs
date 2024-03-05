@@ -1,4 +1,7 @@
-use std::{io::Result, sync::Arc};
+use std::{
+    io::{Error, Result},
+    sync::Arc,
+};
 
 use windows::{
     core::GUID,
@@ -80,7 +83,7 @@ pub fn luid_to_index(luid: &NET_LUID_LH) -> Result<u32> {
 
     match unsafe { ConvertInterfaceLuidToIndex(luid, &mut index) } {
         WIN32_ERROR(0) => Ok(index),
-        err => Err(std::io::Error::from_raw_os_error(err.0 as i32)),
+        err => Err(Error::from_raw_os_error(err.0 as i32)),
     }
 }
 
@@ -89,7 +92,7 @@ pub fn luid_to_guid(luid: &NET_LUID_LH) -> Result<GUID> {
 
     match unsafe { ConvertInterfaceLuidToGuid(luid, &mut guid) } {
         WIN32_ERROR(0) => Ok(guid),
-        err => Err(std::io::Error::from_raw_os_error(err.0 as i32)),
+        err => Err(Error::from_raw_os_error(err.0 as i32)),
     }
 }
 
@@ -99,22 +102,39 @@ pub fn luid_to_alias(luid: &NET_LUID_LH) -> Result<Vec<u16>> {
 
     match unsafe { ConvertInterfaceLuidToAlias(luid, &mut alias) } {
         WIN32_ERROR(0) => Ok(alias),
-        err => Err(std::io::Error::from_raw_os_error(err.0 as i32)),
+        err => Err(Error::from_raw_os_error(err.0 as i32)),
     }
 }
 
-pub fn delete_tun_reg() -> std::io::Result<()> {
-    let hklm = winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE);
+/// 删除以xx为开头的网卡注册表
+/// 例如：with_tun_0 | with_tun_0 2
+pub fn delete_reg_with_tun_name(name: String) -> Result<()> {
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
     let network_list =
         hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList\\Profiles")?;
 
+    // guid: {guid}
     for guid in network_list.enum_keys().map(|x| x.unwrap()) {
         let adapter = network_list.open_subkey(guid.clone())?;
         let profile: String = adapter.get_value("ProfileName")?;
-        if profile.trim().to_ascii_lowercase().contains("with_tun") {
+        if profile
+            .to_ascii_lowercase()
+            .starts_with(&name.to_ascii_lowercase())
+        {
             network_list.delete_subkey(guid)?;
         }
     }
+
+    Ok(())
+}
+
+/// 删除指定guid的网卡注册表
+pub fn delete_reg_with_tun_guid(guid: String) -> Result<()> {
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let network_list =
+        hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList\\Profiles")?;
+
+    network_list.delete_subkey(format!("{{{}}}", guid))?;
 
     Ok(())
 }

@@ -74,7 +74,7 @@ impl Device {
                 ));
             }
         };
-
+        println!("name: {}", name.clone());
         let name_utf16 = util::encode_utf16(&name);
         if name_utf16.len() > MAX_POOL {
             return Err(Error::new(
@@ -86,16 +86,23 @@ impl Device {
         let description = util::encode_utf16("With Tun Adapter");
 
         log::set_default_logger_if_unset(&win_tun);
+
+        // 多网卡时网卡名称应为: with_tun_0 / with_tun_1
+        // 所以不存在删除其他实例正在使用的网卡情况
         let _ = Self::delete_with_name_before_new(&win_tun, &name_utf16);
 
         if utils::root::is_elevated() {
-            println!("elevated");
-            let _ = util::delete_tun_reg();
+            let _ = util::delete_reg_with_tun_name(name.clone());
         }
+
+        // 此处生成的guid储存于
+        // \HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Class\{4d36e972-e325-11ce-bfc1-08002be10318}\
         let guid = GUID::new()?.to_u128();
         let guid_struct: wintun_raw::GUID = unsafe { std::mem::transmute(GUID::from_u128(guid)) };
         let guid_ptr = &guid_struct as *const wintun_raw::GUID;
 
+        // 有时候创建的网卡 Description 和 ProfileName 都是默认值(网络/NetWork)
+        // 此时不知道确切网卡信息, 不能够删除序号递增的网卡注册表
         let adapter = unsafe {
             win_tun.WintunCreateAdapter(name_utf16.as_ptr(), description.as_ptr(), guid_ptr)
         };
@@ -251,10 +258,10 @@ impl IFace for Device {
     fn version(&self) -> Result<String> {
         let version = unsafe { self.win_tun.WintunGetRunningDriverVersion() };
         if version == 0 {
-            return Err(Error::new(
+            Err(Error::new(
                 ErrorKind::Other,
                 "WintunGetRunningDriverVersion",
-            ));
+            ))
         } else {
             Ok(format!("{}.{}", (version >> 16) & 0xFFFF, version & 0xFFFF))
         }
