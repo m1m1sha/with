@@ -330,7 +330,7 @@ impl Drop for Device {
         }
         unsafe { self.win_tun.WintunEndSession(self.session.0) };
         unsafe { self.win_tun.WintunCloseAdapter(self.adapter.0) };
-        if 0 != unsafe { self.win_tun.WintunDeleteDriver() } {
+        if 1 != unsafe { self.win_tun.WintunDeleteDriver() } {
             tracing::warn!("WintunDeleteDriver failed")
         }
 
