@@ -89,11 +89,10 @@ impl Device {
 
         let description = util::encode_utf16("With Tun Adapter");
 
-        log::set_default_logger_if_unset(&win_tun);
-
         // 多网卡时网卡名称应为: with_tun_0 / with_tun_1
         // 所以不存在删除其他实例正在使用的网卡情况
         let _ = Self::delete_with_name_before_new(&win_tun, &name_utf16);
+        log::set_default_logger_if_unset(&win_tun);
         let mut profiles: HashMap<String, Profile> = HashMap::new();
         if utils::root::is_elevated() {
             let _ = util::delete_reg_with_tun_name(name.clone());
