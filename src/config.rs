@@ -1,6 +1,6 @@
 use std::{
-    io::Result,
-    net::{Ipv4Addr, SocketAddr, ToSocketAddrs},
+    io::{Error, ErrorKind, Result},
+    net::{Ipv4Addr, SocketAddr},
 };
 
 use serde::{Deserialize, Serialize};
@@ -62,6 +62,16 @@ impl Config {
                 "stun.qq.com:3478".to_owned(),
             ],
         };
+
+        if token.is_empty() || token.len() > 128 {
+            return Err(Error::new(ErrorKind::Other, "token too long or is empty"));
+        }
+        if udi.is_empty() || udi.len() > 128 {
+            return Err(Error::new(ErrorKind::Other, "udi too long or is empty"));
+        }
+        if name.is_empty() || name.len() > 128 {
+            return Err(Error::new(ErrorKind::Other, "name too long or is empty"));
+        }
 
         Ok(Self {
             udi,
