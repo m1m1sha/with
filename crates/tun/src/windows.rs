@@ -64,7 +64,7 @@ impl Device {
             Err(e) => {
                 return Err(Error::new(
                     ErrorKind::Other,
-                    format!("wintun.dll not found in path: {}, {:?}", path, e),
+                    format!("dll not found in path: {}, {:?}", path, e),
                 ));
             }
         };
@@ -335,7 +335,7 @@ impl Drop for Device {
         }
 
         let after_profiles = util::get_profiles().unwrap_or_default();
-        println!("after: {:#?}", after_profiles);
+
         let mut profile_guid = None;
 
         if utils::root::is_elevated() {
