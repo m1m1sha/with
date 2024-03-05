@@ -249,11 +249,11 @@ impl Device {
     ) -> Result<()> {
         let adapter = unsafe { win_tun.WintunOpenAdapter(name_utf16.as_ptr()) };
         if adapter.is_null() {
-            tracing::error!(
+            tracing::warn!(
                 "Could not find and clear the adapter for that name, {:?}",
                 Error::last_os_error()
             );
-            return Err(Error::new(ErrorKind::Other, "Failed to open adapter"));
+            return Err(Error::new(ErrorKind::Other, "Failed to find and clear"));
         }
         unsafe { win_tun.WintunCloseAdapter(adapter) };
         unsafe { win_tun.WintunDeleteDriver() };
