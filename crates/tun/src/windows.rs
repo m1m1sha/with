@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     io::{Error, ErrorKind, Result},
     net::Ipv4Addr,
     slice,
@@ -18,6 +19,8 @@ use windows::{
 };
 
 use crate::device::IFace;
+
+use self::util::Profile;
 
 pub mod log;
 pub mod netsh;
@@ -40,6 +43,7 @@ unsafe impl<T> Sync for UnsafeHandle<T> {}
 pub struct Device {
     pub(crate) luid: u64,
     pub(crate) guid: u128,
+    pub(crate) profiles: HashMap<String, Profile>,
     pub(crate) index: u32,
     pub(crate) session: UnsafeHandle<wintun_raw::WINTUN_SESSION_HANDLE>,
     pub(crate) win_tun: Arc<wintun_raw::wintun>,
@@ -90,9 +94,10 @@ impl Device {
         // 多网卡时网卡名称应为: with_tun_0 / with_tun_1
         // 所以不存在删除其他实例正在使用的网卡情况
         let _ = Self::delete_with_name_before_new(&win_tun, &name_utf16);
-
+        let mut profiles: HashMap<String, Profile> = HashMap::new();
         if utils::root::is_elevated() {
             let _ = util::delete_reg_with_tun_name(name.clone());
+            profiles = util::get_profiles()?;
         }
 
         // 此处生成的guid储存于
@@ -128,6 +133,7 @@ impl Device {
         Ok(Self {
             luid: unsafe { std::mem::transmute(luid) },
             guid,
+            profiles,
             index,
             session: UnsafeHandle(session),
             win_tun,
@@ -326,6 +332,29 @@ impl Drop for Device {
         unsafe { self.win_tun.WintunCloseAdapter(self.adapter.0) };
         if 0 != unsafe { self.win_tun.WintunDeleteDriver() } {
             tracing::warn!("WintunDeleteDriver failed")
+        }
+
+        let after_profiles = util::get_profiles().unwrap_or_default();
+        println!("after: {:#?}", after_profiles);
+        let mut profile_guid = None;
+
+        if utils::root::is_elevated() {
+            // 仅当只存在一个网卡注册表有区别时
+            for (g, _) in after_profiles {
+                if !self.profiles.contains_key(&g) {
+                    if profile_guid.is_none() {
+                        profile_guid = Some(g);
+                    } else {
+                        profile_guid = None;
+                        break;
+                    }
+                }
+            }
+
+            // 删除指定guid的注册表
+            if let Some(guid) = profile_guid {
+                let _ = util::delete_reg_with_tun_guid(guid);
+            }
         }
     }
 }

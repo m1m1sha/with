@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     io::{Error, Result},
     sync::Arc,
 };
@@ -137,4 +138,31 @@ pub fn delete_reg_with_tun_guid(guid: String) -> Result<()> {
     network_list.delete_subkey(format!("{{{}}}", guid))?;
 
     Ok(())
+}
+
+#[derive(Debug, Clone)]
+pub struct Profile {
+    pub profile_name: String,
+    pub description: String,
+}
+
+pub fn get_profiles() -> Result<HashMap<String, Profile>> {
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let network_list =
+        hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList\\Profiles")?;
+    let mut profiles = HashMap::new();
+    for guid in network_list.enum_keys().map(|x| x.unwrap()) {
+        let adapter = network_list.open_subkey(guid.clone())?;
+        let profile_name: String = adapter.get_value("ProfileName")?;
+        let description: String = adapter.get_value("Description")?;
+
+        profiles.insert(
+            guid.replace(['{', '}'], "").to_string(),
+            Profile {
+                profile_name,
+                description,
+            },
+        );
+    }
+    Ok(profiles)
 }
