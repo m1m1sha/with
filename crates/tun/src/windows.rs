@@ -78,7 +78,7 @@ impl Device {
                 ));
             }
         };
-        println!("name: {}", name.clone());
+
         let name_utf16 = util::encode_utf16(&name);
         if name_utf16.len() > MAX_POOL {
             return Err(Error::new(
