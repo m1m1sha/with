@@ -140,6 +140,18 @@ pub fn delete_reg_with_tun_guid(guid: String) -> Result<()> {
     Ok(())
 }
 
+// 更激进的方式, 清除所有 profile 未知的影响
+pub fn clear_network_list() -> Result<()> {
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let network_list =
+        hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList")?;
+
+    network_list.delete_subkey("Profiles")?;
+    let signature = network_list.open_subkey("Signatures")?;
+    signature.delete_subkey("Unmanaged")?;
+    Ok(())
+}
+
 #[derive(Debug, Clone)]
 pub struct Profile {
     pub profile_name: String,
