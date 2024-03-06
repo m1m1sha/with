@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["m1m1sha"]
 
 [dependencies]
-serde = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 
 [workspace]
 members = ["crates/packet", "crates/tun", "crates/utils"]
