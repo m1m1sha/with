@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["m1m1sha"]
 
 [dependencies]
-
+serde = { workspace = true }
 
 [workspace]
 members = ["crates/packet", "crates/tun", "crates/utils"]
@@ -21,3 +21,4 @@ byteorder = "^1"
 tracing = "^0.1"
 tracing-subscriber = "^0.3"
 encoding = "^0.2"
+serde = "^1"
