@@ -8,7 +8,7 @@ authors = ["m1m1sha"]
 serde = { workspace = true, features = ["derive"] }
 
 [workspace]
-members = ["crates/packet", "crates/tun", "crates/utils"]
+members = ["crates/packet", "crates/stun", "crates/tun", "crates/utils"]
 
 [workspace.dependencies]
 packet = { path = "crates/packet" }

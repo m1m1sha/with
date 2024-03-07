@@ -1,0 +1,9 @@
+[package]
+name = "stun"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+tracing = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["full"] }
