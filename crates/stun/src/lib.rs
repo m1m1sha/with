@@ -6,6 +6,8 @@ use std::{
 use serde::{Deserialize, Serialize};
 use tokio::net::UdpSocket;
 
+pub mod test;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Serialize, Deserialize)]
 pub enum NatType {
     Symmetric,

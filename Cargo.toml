@@ -24,7 +24,7 @@ tokio = "^1"
 encoding = "^0.2"
 serde = "^1"
 parking_lot = "^0.12"
-
+stun-format = "^1"
 
 [build-dependencies]
 prost-build = "^0.12"

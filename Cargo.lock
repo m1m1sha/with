@@ -399,6 +399,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "r-ex"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42776a943a4f890410259860d4c308d32792ecbeaca4932a2b94b04f6d27bb9a"
+
+[[package]]
 name = "redox_syscall"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -510,9 +516,30 @@ dependencies = [
 name = "stun"
 version = "0.0.0"
 dependencies = [
+ "parking_lot",
  "serde",
+ "stun-format",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "stun-bytes"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bebd666814c8af1e06e4d489f9c3d03a4aef20bae651550c52e6e95e09f3f12"
+dependencies = [
+ "r-ex",
+]
+
+[[package]]
+name = "stun-format"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6ad3c54fde6dfd6fe5048a71515b392d22c29730533663b5300e1b511d78df5"
+dependencies = [
+ "r-ex",
+ "stun-bytes",
 ]
 
 [[package]]

@@ -5,5 +5,7 @@ edition = "2021"
 
 [dependencies]
 tracing = { workspace = true }
+parking_lot = { workspace = true }
+stun-format = { workspace = true, features = ["fmt", "rfc3489"] }
 serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["full"] }
