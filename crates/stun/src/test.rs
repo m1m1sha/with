@@ -11,11 +11,9 @@ use super::NatType;
 
 pub async fn nat(stuns: Vec<String>) -> Result<(NatType, Vec<Ipv4Addr>, u16)> {
     let mut handles = Vec::new();
-    let rt = tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()?;
+
     for stun in stuns {
-        let handle = rt.spawn(async move { test_nat(stun).await });
+        let handle = tokio::spawn(async move { test_nat(stun).await });
         handles.push(handle);
     }
 
