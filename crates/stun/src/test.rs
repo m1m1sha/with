@@ -145,3 +145,27 @@ fn stun_addr(addr: stun_format::SocketAddr) -> SocketAddr {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // 注意这个惯用法：在 tests 模块中，从外部作用域导入所有名字。
+    use super::*;
+
+    #[test]
+    fn test_nat() {
+        tokio_test::block_on(async {
+            let (nat_type, public_ips, port_range) = nat(vec![
+                "stun1.l.google.com:19302".to_string(),
+                "stun2.l.google.com:19302".to_string(),
+                "stun.miwifi.com:3478".to_string(),
+                "stun.qq.com:3478".to_string(),
+            ])
+            .await
+            .unwrap();
+
+            println!("NatType: {:?}", nat_type);
+            println!("Ip: {:?}", public_ips);
+            println!("u16: {}", port_range);
+        })
+    }
+}
