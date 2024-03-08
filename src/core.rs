@@ -40,7 +40,6 @@ pub struct With {
     nat_test: NatTest,
     context: Context,
     device_list: Arc<Mutex<(u16, Vec<PeerDeviceInfo>)>>,
-    config_info: BaseConfigInfo,
     peer_nat_info_map: Arc<RwLock<HashMap<Ipv4Addr, NatInfo>>>,
     down_count_watcher: WatchU64Adder,
     up_count_watcher: WatchSingleU64Adder,
@@ -148,7 +147,7 @@ impl Core {
 
         // 虚拟网卡
         let device = crate::tun::create_device(&self.config)?;
-        let tun_info = handler::callback::DeviceInfo::new(device.name()?, device.version()?);
+        let _tun_info = handler::callback::DeviceInfo::new(device.name()?, device.version()?);
 
         // 定时器
         let scheduler = Scheduler::new(self.stoper.clone())?;
@@ -271,7 +270,6 @@ impl Core {
             nat_test,
             context,
             device_list,
-            config_info,
             peer_nat_info_map,
             down_count_watcher,
             up_count_watcher,
