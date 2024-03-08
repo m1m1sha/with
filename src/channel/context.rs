@@ -12,7 +12,7 @@ use parking_lot::RwLock;
 use rand::Rng;
 
 use crate::channel::sender::{AcceptSocketSender, ChannelSender, PacketSender};
-use crate::channel::{Route, RouteKey, UseChannelType, DEFAULT_RT};
+use crate::channel::{ChannelMode, Route, RouteKey, DEFAULT_RT};
 use crate::handler::{ConnectStatus, CurrentDeviceInfo};
 
 /// 传输通道上下文，持有udp socket、tcp socket和路由信息
@@ -24,7 +24,7 @@ pub struct Context {
 impl Context {
     pub fn new(
         main_udp_socket: Vec<UdpSocket>,
-        use_channel_type: UseChannelType,
+        channel: ChannelMode,
         first_latency: bool,
         is_tcp: bool,
         packet_loss_rate: Option<f64>,
@@ -46,7 +46,7 @@ impl Context {
             main_udp_socket,
             sub_udp_socket: RwLock::new(Vec::with_capacity(64)),
             tcp_map: RwLock::new(HashMap::with_capacity(64)),
-            route_table: RouteTable::new(use_channel_type, first_latency, channel_num),
+            route_table: RouteTable::new(channel, first_latency, channel_num),
             is_tcp,
             state: AtomicBool::new(true),
             packet_loss_rate,
@@ -92,8 +92,8 @@ pub struct ContextInner {
 }
 
 impl ContextInner {
-    pub fn use_channel_type(&self) -> UseChannelType {
-        self.route_table.use_channel_type
+    pub fn channel(&self) -> ChannelMode {
+        self.route_table.channel
     }
     pub fn is_stop(&self) -> bool {
         !self.state.load(Ordering::Acquire)
@@ -112,7 +112,7 @@ impl ContextInner {
         !route_key.is_tcp() && route_key.index < self.main_udp_socket.len()
     }
     pub fn first_latency(&self) -> bool {
-        self.route_table.first_latency
+        self.route_table.latency
     }
     /// 切换NAT类型，不同的nat打洞模式会有不同
     pub fn switch(
@@ -264,7 +264,7 @@ impl ContextInner {
         if self.packet_delay > 0 {
             std::thread::sleep(Duration::from_millis(self.packet_delay as _));
         }
-        if self.send_by_id(buf, id).is_err() && !self.route_table.use_channel_type.is_only_p2p() {
+        if self.send_by_id(buf, id).is_err() && !self.route_table.channel.is_only_p2p() {
             self.send_default(buf, server_addr)
         } else {
             Ok(())
@@ -308,17 +308,17 @@ impl ContextInner {
 pub struct RouteTable {
     pub(crate) route_table:
         RwLock<HashMap<Ipv4Addr, (AtomicUsize, Vec<(Route, AtomicCell<Instant>)>)>>,
-    first_latency: bool,
+    latency: bool,
     channel_num: usize,
-    use_channel_type: UseChannelType,
+    channel: ChannelMode,
 }
 
 impl RouteTable {
-    fn new(use_channel_type: UseChannelType, first_latency: bool, channel_num: usize) -> Self {
+    fn new(channel: ChannelMode, latency: bool, channel_num: usize) -> Self {
         Self {
             route_table: RwLock::new(HashMap::with_capacity(64)),
-            use_channel_type,
-            first_latency,
+            channel,
+            latency,
             channel_num,
         }
     }
@@ -361,8 +361,8 @@ impl RouteTable {
     }
     fn add_route_(&self, id: Ipv4Addr, route: Route, only_if_absent: bool) {
         // 限制通道类型
-        match self.use_channel_type {
-            UseChannelType::P2p => {
+        match self.channel {
+            ChannelMode::P2p => {
                 if route.metric != 1 {
                     return;
                 }
@@ -377,7 +377,7 @@ impl RouteTable {
         let mut exist = false;
         let mut p2p_num = 0;
         for (x, time) in list.iter_mut() {
-            if x.metric < route.metric && !self.first_latency {
+            if x.metric < route.metric && !self.latency {
                 //非优先延迟的情况下 不能比当前的路径更长
                 return;
             }
@@ -398,7 +398,7 @@ impl RouteTable {
         if exist {
             list.sort_by_key(|(k, _)| k.rt);
         } else {
-            let limit_len = if self.first_latency {
+            let limit_len = if self.latency {
                 self.channel_num
             } else {
                 if p2p_num >= self.channel_num {

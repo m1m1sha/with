@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::io::{self, Error, ErrorKind};
 use std::net::{SocketAddr, UdpSocket};
 use std::str::FromStr;
@@ -20,33 +21,33 @@ pub mod tcp_channel;
 pub mod udp_channel;
 
 const BUFFER_SIZE: usize = 1024 * 16;
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-#[derive(Default)]
-pub enum UseChannelType {
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChannelMode {
     Relay,
     P2p,
     #[default]
     All,
 }
-impl UseChannelType {
+impl ChannelMode {
     pub fn is_only_relay(&self) -> bool {
-        self == &UseChannelType::Relay
+        self == &ChannelMode::Relay
     }
     pub fn is_only_p2p(&self) -> bool {
-        self == &UseChannelType::P2p
+        self == &ChannelMode::P2p
     }
     pub fn is_all(&self) -> bool {
-        self == &UseChannelType::All
+        self == &ChannelMode::All
     }
 }
-impl FromStr for UseChannelType {
+impl FromStr for ChannelMode {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().trim() {
-            "relay" => Ok(UseChannelType::Relay),
-            "p2p" => Ok(UseChannelType::P2p),
-            "all" => Ok(UseChannelType::All),
+            "relay" => Ok(ChannelMode::Relay),
+            "p2p" => Ok(ChannelMode::P2p),
+            "all" => Ok(ChannelMode::All),
             _ => Err(format!("not match '{}', enum: relay/p2p/all", s)),
         }
     }
@@ -144,7 +145,7 @@ impl RouteKey {
 
 pub fn init_context(
     ports: Vec<u16>,
-    use_channel_type: UseChannelType,
+    channel: ChannelMode,
     first_latency: bool,
     is_tcp: bool,
     packet_loss_rate: Option<f64>,
@@ -177,7 +178,7 @@ pub fn init_context(
     }
     let context = Context::new(
         udps,
-        use_channel_type,
+        channel,
         first_latency,
         is_tcp,
         packet_loss_rate,

@@ -18,7 +18,7 @@ use crate::channel::context::Context;
 use crate::channel::{Route, RouteKey};
 use cipher::Cipher;
 
-use crate::handler::callback::{ErrorInfo, ErrorType, HandshakeInfo, RegisterInfo, VntCallback};
+use crate::handler::callback::{Callback, ErrorInfo, ErrorType, HandshakeInfo, RegisterInfo};
 use cipher::RsaCipher;
 
 use crate::handler::handshaker;
@@ -42,7 +42,7 @@ pub struct ServerPacketHandler<Call> {
     device_list: Arc<Mutex<(u16, Vec<PeerDeviceInfo>)>>,
     config_info: BaseConfigInfo,
     nat_test: NatTest,
-    callback: Call,
+    call: Call,
 
     up_key_time: Arc<AtomicCell<Instant>>,
     route_record: Arc<Mutex<Vec<(Ipv4Addr, Ipv4Addr)>>>,
@@ -58,7 +58,7 @@ impl<Call> ServerPacketHandler<Call> {
         device_list: Arc<Mutex<(u16, Vec<PeerDeviceInfo>)>>,
         config_info: BaseConfigInfo,
         nat_test: NatTest,
-        callback: Call,
+        call: Call,
         external_route: crate::external::Route,
     ) -> Self {
         Self {
@@ -69,7 +69,7 @@ impl<Call> ServerPacketHandler<Call> {
             device_list,
             config_info,
             nat_test,
-            callback,
+            call,
 
             up_key_time: Arc::new(AtomicCell::new(Instant::now() - Duration::from_secs(60))),
             route_record: Arc::new(Mutex::default()),
@@ -78,7 +78,7 @@ impl<Call> ServerPacketHandler<Call> {
     }
 }
 
-impl<Call: VntCallback> PacketHandler for ServerPacketHandler<Call> {
+impl<Call: Callback> PacketHandler for ServerPacketHandler<Call> {
     fn handle(
         &self,
         mut net_packet: NetPacket<&mut [u8]>,
@@ -136,7 +136,7 @@ impl<Call: VntCallback> PacketHandler for ServerPacketHandler<Call> {
                 );
                 tracing::warn!("加密握手请求:{:?}", handshake_info);
 
-                if self.callback.handshake(handshake_info) {
+                if self.call.handshake(handshake_info) {
                     let packet = handshaker::secret_handshake_request_packet(
                         &rsa_cipher,
                         self.config_info.token.clone(),
@@ -149,7 +149,7 @@ impl<Call: VntCallback> PacketHandler for ServerPacketHandler<Call> {
             }
 
             let handshake_info = HandshakeInfo::new_no_secret(response.version);
-            if self.callback.handshake(handshake_info) {
+            if self.call.handshake(handshake_info) {
                 //没有加密，则发送注册请求
                 self.register(current_device, context)?;
             }
@@ -197,7 +197,7 @@ impl<Call: VntCallback> PacketHandler for ServerPacketHandler<Call> {
     }
 }
 
-impl<Call: VntCallback> ServerPacketHandler<Call> {
+impl<Call: Callback> ServerPacketHandler<Call> {
     fn service(
         &self,
         context: &Context,
@@ -219,7 +219,7 @@ impl<Call: VntCallback> ServerPacketHandler<Call> {
                 let virtual_network =
                     Ipv4Addr::from(response.virtual_ip & response.virtual_netmask);
                 let register_info = RegisterInfo::new(virtual_ip, virtual_netmask, virtual_gateway);
-                if self.callback.register(register_info) {
+                if self.call.register(register_info) {
                     let route = Route::from_default_rt(route_key, 1);
                     context
                         .route_table
@@ -255,7 +255,7 @@ impl<Call: VntCallback> ServerPacketHandler<Call> {
                             tracing::info!("ip发生变化,old:{:?},response={:?}", old, response);
                         }
                         if let Err(e) = self.device.set_ip(virtual_ip, virtual_netmask) {
-                            self.callback.error(ErrorInfo::new_msg(
+                            self.call.error(ErrorInfo::new_msg(
                                 ErrorType::LocalIpExists,
                                 format!("set_ip {:?}", e),
                             ));
@@ -301,7 +301,7 @@ impl<Call: VntCallback> ServerPacketHandler<Call> {
                                 guard.push((dest, mask));
                             }
                         }
-                        self.callback.success();
+                        self.call.success();
                     }
                     self.set_device_info_list(response.device_info_list, response.epoch as _);
                 }
@@ -380,11 +380,11 @@ impl<Call: VntCallback> ServerPacketHandler<Call> {
             InErrorPacket::TokenError => {
                 // token错误，可能是服务端设置了白名单
                 let err = ErrorInfo::new(ErrorType::TokenError);
-                self.callback.error(err);
+                self.call.error(err);
             }
             InErrorPacket::Disconnect => {
                 let err = ErrorInfo::new(ErrorType::Disconnect);
-                self.callback.error(err);
+                self.call.error(err);
                 //掉线epoch要归零
                 {
                     let mut dev = self.device_list.lock();
@@ -396,21 +396,21 @@ impl<Call: VntCallback> ServerPacketHandler<Call> {
             InErrorPacket::AddressExhausted => {
                 // 地址用尽
                 let err = ErrorInfo::new(ErrorType::AddressExhausted);
-                self.callback.error(err);
+                self.call.error(err);
             }
             InErrorPacket::OtherError(e) => {
                 let err = ErrorInfo::new_msg(ErrorType::Unknown, e.message()?);
-                self.callback.error(err);
+                self.call.error(err);
             }
             InErrorPacket::IpAlreadyExists => {
                 tracing::error!("IpAlreadyExists");
                 let err = ErrorInfo::new(ErrorType::IpAlreadyExists);
-                self.callback.error(err);
+                self.call.error(err);
             }
             InErrorPacket::InvalidIp => {
                 tracing::error!("InvalidIp");
                 let err = ErrorInfo::new(ErrorType::InvalidIp);
-                self.callback.error(err);
+                self.call.error(err);
             }
             InErrorPacket::NoKey => {
                 //这个类型最开头已经处理过，这里忽略

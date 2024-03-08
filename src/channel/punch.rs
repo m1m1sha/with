@@ -1,32 +1,32 @@
+use mio::net::TcpStream;
+use nat::stun::{NatInfo, NatType};
+use rand::prelude::SliceRandom;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::str::FromStr;
 use std::time::Duration;
 
-use mio::net::TcpStream;
-use nat::stun::{NatInfo, NatType};
-use rand::prelude::SliceRandom;
-
 use crate::channel::context::Context;
 use crate::channel::sender::AcceptSocketSender;
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
-pub enum PunchModel {
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Serialize, Deserialize)]
+pub enum PunchMode {
     IPv4,
     IPv6,
     #[default]
     All,
 }
 
-impl FromStr for PunchModel {
+impl FromStr for PunchMode {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().trim() {
-            "ipv4" => Ok(PunchModel::IPv4),
-            "ipv6" => Ok(PunchModel::IPv6),
-            "all" => Ok(PunchModel::All),
+            "ipv4" => Ok(PunchMode::IPv4),
+            "ipv6" => Ok(PunchMode::IPv6),
+            "all" => Ok(PunchMode::All),
             _ => Err(format!("not match '{}', enum: ipv4/ipv6/all", s)),
         }
     }
@@ -37,7 +37,7 @@ pub struct Punch {
     context: Context,
     port_vec: Vec<u16>,
     port_index: HashMap<Ipv4Addr, usize>,
-    punch_model: PunchModel,
+    punch_model: PunchMode,
     is_tcp: bool,
     tcp_socket_sender: AcceptSocketSender<(TcpStream, SocketAddr, Option<Vec<u8>>)>,
 }
@@ -45,7 +45,7 @@ pub struct Punch {
 impl Punch {
     pub fn new(
         context: Context,
-        punch_model: PunchModel,
+        punch_model: PunchMode,
         is_tcp: bool,
         tcp_socket_sender: AcceptSocketSender<(TcpStream, SocketAddr, Option<Vec<u8>>)>,
     ) -> Self {
@@ -116,12 +116,12 @@ impl Punch {
             }
         }
 
-        if self.punch_model != PunchModel::IPv4 {
+        if self.punch_model != PunchMode::IPv4 {
             for index in 0..channel_num {
                 if let Some(ipv6_addr) = nat_info.local_udp_ipv6_addr(index) {
                     let rs = self.context.send_main_udp(index, buf, ipv6_addr);
                     tracing::info!("发送到ipv6地址:{:?},rs={:?}", ipv6_addr, rs);
-                    if rs.is_ok() && self.punch_model == PunchModel::IPv6 {
+                    if rs.is_ok() && self.punch_model == PunchMode::IPv6 {
                         return Ok(());
                     }
                 }

@@ -182,7 +182,7 @@ impl ClientPacketHandler {
                 context.route_table.add_route(source, route);
             }
             ControlPacket::PunchRequest => {
-                if context.use_channel_type().is_only_relay() {
+                if context.channel().is_only_relay() {
                     return Ok(());
                 }
                 //回应
@@ -196,7 +196,7 @@ impl ClientPacketHandler {
                 context.route_table.add_route_if_absent(source, route);
             }
             ControlPacket::PunchResponse => {
-                if context.use_channel_type().is_only_relay() {
+                if context.channel().is_only_relay() {
                     return Ok(());
                 }
                 let route = Route::from_default_rt(route_key, 1);
@@ -230,7 +230,7 @@ impl ClientPacketHandler {
         net_packet: NetPacket<&mut [u8]>,
         route_key: RouteKey,
     ) -> io::Result<()> {
-        if context.use_channel_type().is_only_relay() {
+        if context.channel().is_only_relay() {
             return Ok(());
         }
         let source = net_packet.source();

@@ -1,3 +1,7 @@
+pub use finger::Finger;
+pub use rsa::RsaCipher;
+use serde::{Deserialize, Serialize};
+
 #[cfg(feature = "aes_cbc")]
 mod aes_cbc;
 #[cfg(feature = "aes_ecb")]
@@ -19,8 +23,6 @@ mod finger;
 #[cfg(feature = "ring-cipher")]
 mod ring_aes_gcm_cipher;
 
-#[cfg(feature = "sm4_cbc")]
-mod sm4_cbc;
 #[cfg(any(
     feature = "aes_gcm",
     feature = "server_encrypt",
@@ -28,11 +30,9 @@ mod sm4_cbc;
     feature = "aes_ecb",
     feature = "sm4_cbc"
 ))]
-pub use finger::Finger;
-
 mod rsa;
-
-pub use rsa::RsaCipher;
+#[cfg(feature = "sm4_cbc")]
+mod sm4_cbc;
 
 #[cfg(feature = "aes_cbc")]
 use crate::aes_cbc::AesCbcCipher;
@@ -59,8 +59,8 @@ use sha2::Digest;
 use std::io;
 use std::str::FromStr;
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub enum CipherModel {
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
+pub enum CipherMode {
     #[cfg(any(feature = "aes_gcm", feature = "server_encrypt"))]
     AesGcm,
     #[cfg(feature = "aes_cbc")]
@@ -72,7 +72,7 @@ pub enum CipherModel {
     None,
 }
 
-impl FromStr for CipherModel {
+impl FromStr for CipherMode {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -93,13 +93,13 @@ impl FromStr for CipherModel {
         ))]
         match s.to_lowercase().trim() {
             #[cfg(any(feature = "aes_gcm", feature = "server_encrypt"))]
-            "aes_gcm" => Ok(CipherModel::AesGcm),
+            "aes_gcm" => Ok(CipherMode::AesGcm),
             #[cfg(feature = "aes_cbc")]
-            "aes_cbc" => Ok(CipherModel::AesCbc),
+            "aes_cbc" => Ok(CipherMode::AesCbc),
             #[cfg(feature = "aes_ecb")]
-            "aes_ecb" => Ok(CipherModel::AesEcb),
+            "aes_ecb" => Ok(CipherMode::AesEcb),
             #[cfg(feature = "sm4_cbc")]
-            "sm4_cbc" => Ok(CipherModel::Sm4Cbc),
+            "sm4_cbc" => Ok(CipherMode::Sm4Cbc),
             _ => {
                 let mut enums = String::new();
                 #[cfg(any(feature = "aes_gcm", feature = "server_encrypt"))]
@@ -142,7 +142,7 @@ impl Cipher {
         feature = "sm4_cbc"
     )))]
     pub fn new_password(
-        _model: CipherModel,
+        _model: CipherMode,
         _password: Option<String>,
         _token: Option<String>,
     ) -> Self {
@@ -156,7 +156,7 @@ impl Cipher {
         feature = "sm4_cbc"
     ))]
     pub fn new_password(
-        model: CipherModel,
+        model: CipherMode,
         password: Option<String>,
         token: Option<String>,
     ) -> Self {
@@ -167,7 +167,7 @@ impl Cipher {
             let key: [u8; 32] = hasher.finalize().into();
             match model {
                 #[cfg(any(feature = "aes_gcm", feature = "server_encrypt"))]
-                CipherModel::AesGcm => {
+                CipherMode::AesGcm => {
                     if password.len() < 8 {
                         let aes = AesGcmCipher::new_128(key[..16].try_into().unwrap(), finger);
                         Cipher::AesGcm((aes, key[..16].to_vec()))
@@ -177,7 +177,7 @@ impl Cipher {
                     }
                 }
                 #[cfg(feature = "aes_cbc")]
-                CipherModel::AesCbc => {
+                CipherMode::AesCbc => {
                     if password.len() < 8 {
                         let aes = AesCbcCipher::new_128(key[..16].try_into().unwrap(), finger);
                         Cipher::AesCbc(aes)
@@ -187,7 +187,7 @@ impl Cipher {
                     }
                 }
                 #[cfg(feature = "aes_ecb")]
-                CipherModel::AesEcb => {
+                CipherMode::AesEcb => {
                     if password.len() < 8 {
                         let aes = AesEcbCipher::new_128(key[..16].try_into().unwrap(), finger);
                         Cipher::AesEcb(aes)
@@ -197,11 +197,11 @@ impl Cipher {
                     }
                 }
                 #[cfg(feature = "sm4_cbc")]
-                CipherModel::Sm4Cbc => {
+                CipherMode::Sm4Cbc => {
                     let aes = Sm4CbcCipher::new_128(key[..16].try_into().unwrap(), finger);
                     Cipher::Sm4Cbc(aes)
                 }
-                CipherModel::None => Cipher::None,
+                CipherMode::None => Cipher::None,
             }
         } else {
             Cipher::None

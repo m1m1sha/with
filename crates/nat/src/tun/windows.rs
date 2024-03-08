@@ -255,6 +255,7 @@ impl Device {
         Ok(())
     }
 }
+
 impl IFace for Device {
     fn version(&self) -> Result<String> {
         let version = unsafe { self.win_tun.WintunGetRunningDriverVersion() };

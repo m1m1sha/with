@@ -14,7 +14,7 @@ use crate::channel::handler::RecvChannelHandler;
 use crate::channel::RouteKey;
 
 use crate::external::{AllowRoute, Route};
-use crate::handler::callback::VntCallback;
+use crate::handler::callback::Callback;
 use crate::handler::recv::client::ClientPacketHandler;
 use crate::handler::recv::server::ServerPacketHandler;
 use crate::handler::recv::turn::TurnPacketHandler;
@@ -40,7 +40,7 @@ pub struct RecvDataHandler<Call> {
     counter: U64Adder,
 }
 
-impl<Call: VntCallback> RecvChannelHandler for RecvDataHandler<Call> {
+impl<Call: Callback> RecvChannelHandler for RecvDataHandler<Call> {
     fn handle(&mut self, buf: &mut [u8], route_key: RouteKey, context: &Context) {
         if let Err(e) = self.handle0(buf, route_key, context) {
             tracing::error!("[{}]-{:?}", thread::current().name().unwrap_or(""), e);
@@ -48,7 +48,7 @@ impl<Call: VntCallback> RecvChannelHandler for RecvDataHandler<Call> {
     }
 }
 
-impl<Call: VntCallback> RecvDataHandler<Call> {
+impl<Call: Callback> RecvDataHandler<Call> {
     pub fn new(
         rsa_cipher: Arc<Mutex<Option<RsaCipher>>>,
         server_cipher: Cipher,
@@ -58,7 +58,7 @@ impl<Call: VntCallback> RecvDataHandler<Call> {
         device_list: Arc<Mutex<(u16, Vec<PeerDeviceInfo>)>>,
         config_info: BaseConfigInfo,
         nat_test: NatTest,
-        callback: Call,
+        call: Call,
         punch_sender: SyncSender<(Ipv4Addr, NatInfo)>,
         peer_nat_info_map: Arc<RwLock<HashMap<Ipv4Addr, NatInfo>>>,
         external_route: Route,
@@ -74,7 +74,7 @@ impl<Call: VntCallback> RecvDataHandler<Call> {
             device_list,
             config_info,
             nat_test.clone(),
-            callback,
+            call,
             external_route,
         );
         let client = ClientPacketHandler::new(

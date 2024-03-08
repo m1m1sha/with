@@ -1,8 +1,8 @@
 use crate::channel::context::Context;
 use crate::channel::idle::{Idle, IdleType};
 use crate::channel::sender::AcceptSocketSender;
+use crate::handler::callback::{Callback, ErrorInfo};
 use crate::handler::callback::{ConnectInfo, ErrorType};
-use crate::handler::callback::{ErrorInfo, VntCallback};
 use crate::handler::{handshaker, BaseConfigInfo, CurrentDeviceInfo};
 use crossbeam_utils::atomic::AtomicCell;
 use mio::net::TcpStream;
@@ -12,7 +12,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use utils::scheduler::Scheduler;
 
-pub fn idle_route<Call: VntCallback>(
+pub fn idle_route<Call: Callback>(
     scheduler: &Scheduler,
     idle: Idle,
     context: Context,
@@ -27,7 +27,7 @@ pub fn idle_route<Call: VntCallback>(
         tracing::info!("定时任务停止");
     }
 }
-pub fn idle_gateway<Call: VntCallback>(
+pub fn idle_gateway<Call: Callback>(
     scheduler: &Scheduler,
     context: Context,
     current_device_info: Arc<AtomicCell<CurrentDeviceInfo>>,
@@ -59,7 +59,7 @@ pub fn idle_gateway<Call: VntCallback>(
         tracing::info!("定时任务停止");
     }
 }
-fn idle_gateway0<Call: VntCallback>(
+fn idle_gateway0<Call: Callback>(
     context: &Context,
     current_device: &AtomicCell<CurrentDeviceInfo>,
     config: &BaseConfigInfo,
@@ -74,7 +74,7 @@ fn idle_gateway0<Call: VntCallback>(
         tracing::warn!("{:?}", e);
     }
 }
-fn idle_route0<Call: VntCallback>(
+fn idle_route0<Call: Callback>(
     idle: &Idle,
     context: &Context,
     current_device: &AtomicCell<CurrentDeviceInfo>,
@@ -98,7 +98,7 @@ fn idle_route0<Call: VntCallback>(
     }
 }
 
-fn check_gateway_channel<Call: VntCallback>(
+fn check_gateway_channel<Call: Callback>(
     context: &Context,
     current_device: CurrentDeviceInfo,
     config: &BaseConfigInfo,

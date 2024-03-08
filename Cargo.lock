@@ -198,6 +198,7 @@ dependencies = [
  "rand",
  "ring",
  "rsa",
+ "serde",
  "sha2",
  "spki",
  "tracing",

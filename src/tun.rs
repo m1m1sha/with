@@ -17,7 +17,7 @@ pub fn create_device(config: &Config) -> io::Result<Arc<Device>> {
     let device = Arc::new(Device::new(config.device_fd as _)?);
     #[cfg(not(target_os = "android"))]
     {
-        let mtu = if config.mtu == 0 || config.passwd.is_empty() {
+        let mtu = if config.mtu == 0 || config.passwd.is_none() {
             1450
         } else {
             1410

@@ -173,7 +173,7 @@ impl Into<u8> for ErrorType {
     }
 }
 
-pub trait VntCallback: Clone + Send + Sync + 'static {
+pub trait Callback: Clone + Send + Sync + 'static {
     /// 启动成功
     fn success(&self) {}
 
