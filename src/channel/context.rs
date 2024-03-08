@@ -7,10 +7,10 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crossbeam_utils::atomic::AtomicCell;
+use nat::stun::NatType;
 use parking_lot::RwLock;
 use rand::Rng;
 
-use crate::channel::punch::NatType;
 use crate::channel::sender::{AcceptSocketSender, ChannelSender, PacketSender};
 use crate::channel::{Route, RouteKey, UseChannelType, DEFAULT_RT};
 use crate::handler::{ConnectStatus, CurrentDeviceInfo};

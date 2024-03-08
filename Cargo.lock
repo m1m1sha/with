@@ -1473,6 +1473,7 @@ dependencies = [
  "prost-build",
  "protocol",
  "rand",
+ "rsa",
  "serde",
  "socket2",
  "tokio",

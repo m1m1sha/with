@@ -29,9 +29,9 @@ mod sm4_cbc;
     feature = "sm4_cbc"
 ))]
 pub use finger::Finger;
-#[cfg(feature = "server_encrypt")]
+
 mod rsa;
-#[cfg(feature = "server_encrypt")]
+
 pub use rsa::RsaCipher;
 
 #[cfg(feature = "aes_cbc")]

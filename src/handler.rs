@@ -1,7 +1,11 @@
 use std::net::{Ipv4Addr, SocketAddr};
 
+pub mod callback;
 pub mod handshaker;
+pub mod maintain;
+pub mod recv;
 pub mod register;
+pub mod tun;
 
 const SELF_IP: Ipv4Addr = Ipv4Addr::new(0, 0, 0, 2);
 const GATEWAY_IP: Ipv4Addr = Ipv4Addr::new(0, 0, 0, 1);

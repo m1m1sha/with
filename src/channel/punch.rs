@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 use std::io;
-use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::str::FromStr;
 use std::time::Duration;
 
 use mio::net::TcpStream;
+use nat::stun::{NatInfo, NatType};
 use rand::prelude::SliceRandom;
 
 use crate::channel::context::Context;
 use crate::channel::sender::AcceptSocketSender;
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-#[derive(Default)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
 pub enum PunchModel {
     IPv4,
     IPv6,
@@ -29,123 +29,6 @@ impl FromStr for PunchModel {
             "all" => Ok(PunchModel::All),
             _ => Err(format!("not match '{}', enum: ipv4/ipv6/all", s)),
         }
-    }
-}
-
-
-#[derive(Clone, Debug)]
-pub struct NatInfo {
-    pub public_ips: Vec<Ipv4Addr>,
-    pub public_ports: Vec<u16>,
-    pub public_port_range: u16,
-    pub nat_type: NatType,
-    pub(crate) local_ipv4: Option<Ipv4Addr>,
-    pub(crate) ipv6: Option<Ipv6Addr>,
-    pub(crate) udp_ports: Vec<u16>,
-    pub tcp_port: u16,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
-pub enum NatType {
-    Symmetric,
-    Cone,
-}
-
-impl NatInfo {
-    pub fn new(
-        mut public_ips: Vec<Ipv4Addr>,
-        public_ports: Vec<u16>,
-        public_port_range: u16,
-        mut local_ipv4: Option<Ipv4Addr>,
-        mut ipv6: Option<Ipv6Addr>,
-        udp_ports: Vec<u16>,
-        tcp_port: u16,
-        mut nat_type: NatType,
-    ) -> Self {
-        public_ips.retain(|ip| {
-            !ip.is_multicast()
-                && !ip.is_broadcast()
-                && !ip.is_unspecified()
-                && !ip.is_loopback()
-                && !ip.is_private()
-        });
-        if public_ips.len() > 1 {
-            nat_type = NatType::Symmetric;
-        }
-        if let Some(ip) = local_ipv4 {
-            if ip.is_multicast() || ip.is_broadcast() || ip.is_unspecified() || ip.is_loopback() {
-                local_ipv4 = None
-            }
-        }
-        if let Some(ip) = ipv6 {
-            if ip.is_multicast() || ip.is_unspecified() || ip.is_loopback() {
-                ipv6 = None
-            }
-        }
-        Self {
-            public_ips,
-            public_ports,
-            public_port_range,
-            local_ipv4,
-            ipv6,
-            udp_ports,
-            tcp_port,
-            nat_type,
-        }
-    }
-    pub fn update_addr(&mut self, index: usize, ip: Ipv4Addr, port: u16) {
-        if port != 0 {
-            if let Some(public_port) = self.public_ports.get_mut(index) {
-                *public_port = port;
-            }
-        }
-        if !ip.is_multicast()
-            && !ip.is_broadcast()
-            && !ip.is_unspecified()
-            && !ip.is_loopback() && !ip.is_private() && !self.public_ips.contains(&ip) {
-            self.public_ips.push(ip);
-        }
-    }
-    pub fn local_ipv4(&self) -> Option<Ipv4Addr> {
-        self.local_ipv4
-    }
-    pub fn ipv6(&self) -> Option<Ipv6Addr> {
-        self.ipv6
-    }
-    pub fn local_udp_ipv4addr(&self, index: usize) -> Option<SocketAddr> {
-        let len = self.udp_ports.len();
-        if len == 0 {
-            return None;
-        }
-        self.local_ipv4.map(|local_ipv4| SocketAddr::V4(SocketAddrV4::new(
-                local_ipv4,
-                self.udp_ports[index % len],
-            )))
-    }
-    pub fn local_udp_ipv6addr(&self, index: usize) -> Option<SocketAddr> {
-        let len = self.udp_ports.len();
-        if len == 0 {
-            return None;
-        }
-        self.ipv6.map(|ipv6| SocketAddr::V6(SocketAddrV6::new(
-                ipv6,
-                self.udp_ports[index % len],
-                0,
-                0,
-            )))
-    }
-
-    pub fn local_tcp_ipv6addr(&self) -> Option<SocketAddr> {
-        if self.tcp_port == 0 {
-            return None;
-        }
-        self.ipv6.map(|ipv6| SocketAddr::V6(SocketAddrV6::new(ipv6, self.tcp_port, 0, 0)))
-    }
-    pub fn local_tcp_ipv4addr(&self) -> Option<SocketAddr> {
-        if self.tcp_port == 0 {
-            return None;
-        }
-        self.local_ipv4.map(|ipv4| SocketAddr::V4(SocketAddrV4::new(ipv4, self.tcp_port)))
     }
 }
 
@@ -207,13 +90,13 @@ impl Punch {
 
         if self.is_tcp && nat_info.tcp_port != 0 {
             //向tcp发起连接
-            if let Some(ipv6_addr) = nat_info.local_tcp_ipv6addr() {
+            if let Some(ipv6_addr) = nat_info.local_tcp_ipv6_addr() {
                 if self.connect_tcp(buf, ipv6_addr) {
                     return Ok(());
                 }
             }
             //向tcp发起连接
-            if let Some(ipv4_addr) = nat_info.local_tcp_ipv4addr() {
+            if let Some(ipv4_addr) = nat_info.local_tcp_ipv4_addr() {
                 if self.connect_tcp(buf, ipv4_addr) {
                     return Ok(());
                 }
@@ -228,14 +111,14 @@ impl Punch {
         }
         let channel_num = self.context.channel_num();
         for index in 0..channel_num {
-            if let Some(ipv4_addr) = nat_info.local_udp_ipv4addr(index) {
+            if let Some(ipv4_addr) = nat_info.local_udp_ipv4_addr(index) {
                 let _ = self.context.send_main_udp(index, buf, ipv4_addr);
             }
         }
 
         if self.punch_model != PunchModel::IPv4 {
             for index in 0..channel_num {
-                if let Some(ipv6_addr) = nat_info.local_udp_ipv6addr(index) {
+                if let Some(ipv6_addr) = nat_info.local_udp_ipv6_addr(index) {
                     let rs = self.context.send_main_udp(index, buf, ipv6_addr);
                     tracing::info!("发送到ipv6地址:{:?},rs={:?}", ipv6_addr, rs);
                     if rs.is_ok() && self.punch_model == PunchModel::IPv6 {

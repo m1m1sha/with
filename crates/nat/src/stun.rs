@@ -19,7 +19,31 @@ pub enum NatType {
     Cone,
 }
 
-async fn local_ipv4() -> Option<Ipv4Addr> {
+impl NatType {
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            NatType::Symmetric => "Symmetric",
+            NatType::Cone => "Cone",
+        }
+    }
+
+    pub fn as_i32(&self) -> i32 {
+        match self {
+            NatType::Symmetric => 0,
+            NatType::Cone => 1,
+        }
+    }
+
+    pub fn from_i32(value: i32) -> Self {
+        if value == 1 {
+            NatType::Cone
+        } else {
+            NatType::Symmetric
+        }
+    }
+}
+
+pub async fn local_ipv4() -> Option<Ipv4Addr> {
     match ipv4().await {
         Ok(ipv4) => Some(ipv4),
         Err(e) => {
@@ -39,7 +63,7 @@ pub async fn ipv4() -> Result<Ipv4Addr> {
     }
 }
 
-async fn local_ipv6() -> Option<Ipv6Addr> {
+pub async fn local_ipv6() -> Option<Ipv6Addr> {
     match ipv6().await {
         Ok(ipv6) => Some(ipv6),
         Err(e) => {
@@ -67,9 +91,9 @@ pub struct NatInfo {
     pub public_ports: Vec<u16>,
     pub public_port_range: u16,
     pub nat_type: NatType,
-    pub(crate) local_ipv4: Option<Ipv4Addr>,
-    pub(crate) ipv6: Option<Ipv6Addr>,
-    pub(crate) udp_ports: Vec<u16>,
+    pub local_ipv4: Option<Ipv4Addr>,
+    pub ipv6: Option<Ipv6Addr>,
+    pub udp_ports: Vec<u16>,
     pub tcp_port: u16,
 }
 

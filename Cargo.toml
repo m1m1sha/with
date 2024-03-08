@@ -17,6 +17,7 @@ parking_lot = { workspace = true }
 socket2 = { workspace = true }
 bytes = { workspace = true }
 rand = { workspace = true }
+rsa = { workspace = true }
 mio = { workspace = true, features = ["os-poll", "net"] }
 tokio = { workspace = true, features = ["full"] }
 serde = { workspace = true, features = ["derive"] }
