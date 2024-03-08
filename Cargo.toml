@@ -9,13 +9,20 @@ serde = { workspace = true, features = ["derive"] }
 
 
 [workspace]
-members = ["crates/packet", "crates/stun", "crates/tun", "crates/utils"]
+members = [
+    "crates/packet",
+    "crates/protocol",
+    "crates/stun",
+    "crates/tun",
+    "crates/utils",
+]
 
 [workspace.dependencies]
 packet = { path = "crates/packet" }
 tun = { path = "crates/tun" }
 stun = { path = "crates/stun" }
 utils = { path = "crates/utils" }
+protocol = { path = "crates/protocol" }
 winreg = "^0.52"
 windows = "^0.54"
 libloading = "^0.8"

@@ -111,10 +111,12 @@ impl Watch {
             guard.push(thread::current());
             drop(guard);
         }
+
         loop {
             if self.worker_num.load(Ordering::Acquire) == 0 {
                 return;
             }
+
             thread::park()
         }
     }

@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 parking_lot = { workspace = true }
 tracing = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { workspace = true, features = [
