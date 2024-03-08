@@ -112,6 +112,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "crossbeam-utils"
+version = "0.8.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "248e3bacc7dc6baa3b21e405ee045c3047101a49145e7e9eca583ab4c2ca5345"
+
+[[package]]
 name = "either"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -544,6 +550,7 @@ dependencies = [
 name = "stun"
 version = "0.0.0"
 dependencies = [
+ "crossbeam-utils",
  "parking_lot",
  "serde",
  "stun-format",
@@ -701,6 +708,7 @@ name = "utils"
 version = "0.0.0"
 dependencies = [
  "parking_lot",
+ "tokio",
  "tracing",
  "windows",
 ]

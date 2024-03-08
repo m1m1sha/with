@@ -28,6 +28,8 @@ serde = "^1"
 parking_lot = "^0.12"
 stun-format = "^1"
 tokio-test = "^0.4"
+crossbeam-utils = "^0.8"
+crossbeam-epoch = "^0.9"
 
 [build-dependencies]
 prost-build = "^0.12"
