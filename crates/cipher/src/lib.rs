@@ -59,7 +59,7 @@ use sha2::Digest;
 use std::io;
 use std::str::FromStr;
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Deserialize, Serialize, Default)]
 pub enum CipherMode {
     #[cfg(any(feature = "aes_gcm", feature = "server_encrypt"))]
     AesGcm,
@@ -69,6 +69,7 @@ pub enum CipherMode {
     AesEcb,
     #[cfg(feature = "sm4_cbc")]
     Sm4Cbc,
+    #[default]
     None,
 }
 
