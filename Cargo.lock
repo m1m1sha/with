@@ -280,6 +280,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5ce46fe64a9d73be07dcbe690a38ce1b293be448fd8ce1e6c1b8062c9f72c6a"
 
 [[package]]
+name = "nat"
+version = "0.1.0"
+dependencies = [
+ "crossbeam-utils",
+ "libloading",
+ "parking_lot",
+ "serde",
+ "stun-format",
+ "tokio",
+ "tokio-test",
+ "tracing",
+ "utils",
+ "windows",
+ "winreg",
+]
+
+[[package]]
 name = "num_cpus"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -551,19 +568,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "stun"
-version = "0.0.0"
-dependencies = [
- "crossbeam-utils",
- "parking_lot",
- "serde",
- "stun-format",
- "tokio",
- "tokio-test",
- "tracing",
-]
-
-[[package]]
 name = "stun-bytes"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -688,17 +692,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c06d3da6113f116aaee68e4d601191614c9053067f9ab7f6edbcb161237daa54"
 dependencies = [
  "once_cell",
-]
-
-[[package]]
-name = "tun"
-version = "0.0.0"
-dependencies = [
- "libloading",
- "tracing",
- "utils",
- "windows",
- "winreg",
 ]
 
 [[package]]
