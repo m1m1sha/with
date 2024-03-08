@@ -9,13 +9,23 @@ serde = { workspace = true, features = ["derive"] }
 
 
 [workspace]
-members = ["crates/nat", "crates/packet", "crates/protocol", "crates/utils"]
+members = [
+    "crates/cipher",
+    "crates/nat",
+    "crates/packet",
+    "crates/protocol",
+    "crates/utils",
+    "crates/libsm",
+]
 
 [workspace.dependencies]
 packet = { path = "crates/packet" }
 nat = { path = "crates/nat" }
 utils = { path = "crates/utils" }
 protocol = { path = "crates/protocol" }
+cipher = { path = "crates/cipher" }
+libsm = { path = "crates/libsm" }
+
 winreg = "^0.52"
 windows = "^0"
 libloading = "^0.8"
@@ -30,6 +40,24 @@ stun-format = "^1"
 tokio-test = "^0.4"
 crossbeam-utils = "^0.8"
 crossbeam-epoch = "^0.9"
+rand = "^0.8"
+
+#cipher
+aes-gcm = "^0.10"
+ring = "^0.17"
+cbc = "^0.1"
+ecb = "^0.1"
+aes = "^0.8"
+rsa = "^0.9"
+spki = "^0.7"
+
+#libsm
+num-bigint = "^0.4"
+num-traits = "^0.2"
+num-integer = "^0.1"
+yasna = "^0.5"
+lazy_static = "^1"
+getrandom = "^0.2"
 
 [build-dependencies]
 prost-build = "^0.12"

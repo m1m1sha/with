@@ -1,0 +1,28 @@
+[package]
+name = "cipher"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+protocol = { workspace = true }
+aes-gcm = { workspace = true, optional = true }
+ring = { workspace = true, optional = true }
+cbc = { workspace = true, optional = true }
+ecb = { workspace = true, optional = true }
+aes = { workspace = true }
+rsa = { workspace = true, optional = true }
+spki = { workspace = true, features = [
+    "fingerprint",
+    "alloc",
+    "base64",
+], optional = true }
+libsm = { workspace = true, optional = true }
+
+[features]
+default = ["server_encrypt", "aes_gcm", "aes_cbc", "aes_ecb", "sm4_cbc"]
+ring-cipher = ["ring"]
+aes_cbc = ["cbc"]
+aes_ecb = ["ecb"]
+sm4_cbc = ["libsm"]
+aes_gcm = ["aes-gcm"]
+server_encrypt = ["aes-gcm", "rsa", "spki"]

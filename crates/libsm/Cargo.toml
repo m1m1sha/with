@@ -1,0 +1,26 @@
+[package]
+name = "libsm"
+version = "0.5.1"
+authors = [
+    "Tang Zongxun <tangzongxun@hotmail.com>",
+    "Niu Junxiang <494521900@qq.com>",
+    "yieazy <yuitta@163.com>",
+    "Rivtower Technologies <contact@rivtower.com>",
+]
+description = "A Rust Library of China's Standards of Encryption Algorithms (SM2/3/4)"
+keywords = ["cipher", "cryptography"]
+license = "Apache-2.0"
+edition = "2021"
+
+[dependencies]
+rand = { workspace = true }
+byteorder = { workspace = true }
+num-bigint = { workspace = true }
+num-traits = { workspace = true }
+num-integer = { workspace = true }
+yasna = { workspace = true, features = ["num-bigint"] }
+lazy_static = { workspace = true }
+getrandom = { workspace = true, features = ["js"] }
+
+[features]
+internal_benches = []
