@@ -6,8 +6,8 @@ use std::{
 };
 use windows::Win32::System::Threading::CREATE_NO_WINDOW;
 
-pub fn cmd(args: &[&str]) -> Result<Vec<u8>> {
-    let out = std::process::Command::new("netsh")
+pub fn cmd(program: &str, args: &[&str]) -> Result<Vec<u8>> {
+    let out = std::process::Command::new(program)
         .creation_flags(CREATE_NO_WINDOW.0)
         .args(args)
         .output()?;
@@ -42,7 +42,7 @@ pub fn set_adapter_mtu(index: u32, mtu: u32) -> Result<()> {
         &format!("mtu={}", mtu),
         "store=persistent",
     ];
-    cmd(args)?;
+    cmd("netsh", args)?;
     Ok(())
 }
 
@@ -55,14 +55,14 @@ pub fn set_interface_name(old_name: &str, new_name: &str) -> Result<()> {
         &format!("name=\"{}\"", old_name),
         &format!("newname=\"{}\"", new_name),
     ];
-    cmd(args)?;
+    cmd("netsh", args)?;
     Ok(())
 }
 
 // 清除缓存
 pub fn delete_cache() -> Result<()> {
     let args = &["interface", "ip", "delete", "destinationcache"];
-    cmd(args)?;
+    cmd("netsh", args)?;
     Ok(())
 }
 
@@ -78,7 +78,7 @@ pub fn set_interface_ip(index: u32, address: &Ipv4Addr, netmask: &Ipv4Addr) -> R
         &format!("\"{:?}\"", address),
         &format!("\"{:?}\"", netmask),
     ];
-    cmd(args)?;
+    cmd("netsh", args)?;
     Ok(())
 }
 
@@ -92,7 +92,7 @@ pub fn set_interface_metric(index: u32, metric: u16) -> Result<()> {
         &format!("{}", index),
         &format!("metric={}", metric),
     ];
-    cmd(args)?;
+    cmd("netsh", args)?;
     Ok(())
 }
 
@@ -106,7 +106,7 @@ pub fn disabled_ipv6(index: u32) -> Result<()> {
         &format!("{}", index),
         "disabled",
     ];
-    cmd(args)?;
+    cmd("netsh", args)?;
     Ok(())
 }
 
@@ -119,6 +119,7 @@ pub fn add_route(
     metric: u16,
 ) -> Result<()> {
     let args = &[
+        "/C",
         "route",
         "add",
         &format!("{}", dest),
@@ -130,7 +131,7 @@ pub fn add_route(
         "if",
         &format!("{}", index),
     ];
-    cmd(args)?;
+    cmd("cmd", args)?;
     Ok(())
 }
 
@@ -142,6 +143,7 @@ pub fn delete_route(
     gateway: Ipv4Addr,
 ) -> Result<()> {
     let args = &[
+        "/C",
         "route",
         "delete",
         &format!("{}", dest),
@@ -151,6 +153,6 @@ pub fn delete_route(
         "if",
         &format!("{}", index),
     ];
-    cmd(args)?;
+    cmd("cmd", args)?;
     Ok(())
 }

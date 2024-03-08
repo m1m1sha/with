@@ -162,11 +162,11 @@ where
                     b"stop",
                     SocketAddr::V4(std::net::SocketAddrV4::new(Ipv4Addr::LOCALHOST, port)),
                 ) {
-                    tracing::error!("发送停止消息到udp失败:{:?}", e);
+                    tracing::error!("发送停止消息到udp失败: {:?}", e);
                 }
             }
             Err(e) => {
-                tracing::error!("发送停止-绑定udp失败:{:?}", e);
+                tracing::error!("发送停止-绑定udp失败: {:?}", e);
             }
         }
     })?;
@@ -196,7 +196,8 @@ where
                 recv_handler.handle(&mut buf[..len], RouteKey::new(false, index, addr), &context);
             }
             Err(e) => {
-                tracing::error!("main_udp_listen0={:?}", e);
+                // 对方掉线等情况
+                tracing::error!("main_udp_listen0: {:?}", e);
             }
         }
     }

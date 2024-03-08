@@ -34,7 +34,7 @@ use crate::{
     },
     proxy,
 };
-
+#[derive(Clone)]
 pub struct With {
     core: Core,
     nat_test: NatTest,
