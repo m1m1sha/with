@@ -214,6 +214,7 @@ pub struct NatTest {
 
 impl NatTest {
     pub fn new(
+        channel_num: usize,
         mut stuns: Vec<String>,
         ipv4: Option<Ipv4Addr>,
         ipv6: Option<Ipv6Addr>,
@@ -221,10 +222,12 @@ impl NatTest {
         tcp_port: u16,
     ) -> NatTest {
         let server = stuns[0].clone();
-        stuns.resize(3, server);
+        stuns.resize(4, server);
+        let mut ports = udp_ports.clone();
+        ports.resize(channel_num, 0);
         let nat_info = NatInfo::new(
             Vec::new(),
-            Vec::new(),
+            ports,
             0,
             ipv4,
             ipv6,
@@ -257,42 +260,15 @@ impl NatTest {
         guard.update_addr(index, ip, port)
     }
 
-    pub async fn re_test(
-        &self,
-        public_ports: Vec<u16>,
-        ipv4: Option<Ipv4Addr>,
-        ipv6: Option<Ipv6Addr>,
-        udp_ports: Vec<u16>,
-        tcp_port: u16,
-    ) -> NatInfo {
-        let info = match test::nat(self.stuns.clone()).await {
-            Ok((nat_type, public_ips, port_range)) => NatInfo::new(
-                public_ips,
-                public_ports,
-                port_range,
-                ipv4,
-                ipv6,
-                udp_ports,
-                tcp_port,
-                nat_type,
-            ),
-            Err(e) => {
-                tracing::warn!("{:?}", e);
-                NatInfo::new(
-                    Vec::new(),
-                    public_ports,
-                    0,
-                    ipv4,
-                    ipv6,
-                    udp_ports,
-                    tcp_port,
-                    NatType::Cone,
-                )
-            }
-        };
+    pub async fn re_test(&self, ipv4: Option<Ipv4Addr>, ipv6: Option<Ipv6Addr>) -> Result<NatInfo> {
+        let (nat_type, public_ips, port_range) = test::nat(self.stuns.clone()).await?;
+        let mut guard = self.info.lock();
+        guard.nat_type = nat_type;
+        guard.public_ips = public_ips;
+        guard.public_port_range = port_range;
+        guard.local_ipv4 = ipv4;
+        guard.ipv6 = ipv6;
 
-        tracing::info!("nat类型: {:?}", info);
-        *self.info.lock() = info.clone();
-        info
+        Ok(guard.clone())
     }
 }
