@@ -5,6 +5,12 @@ edition = "2021"
 authors = ["m1m1sha"]
 
 [dependencies]
+nat = { workspace = true }
+utils = { workspace = true }
+protocol = { workspace = true }
+cipher = { workspace = true }
+prost = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
 serde = { workspace = true, features = ["derive"] }
 
 
@@ -26,6 +32,7 @@ protocol = { path = "crates/protocol" }
 cipher = { path = "crates/cipher" }
 libsm = { path = "crates/libsm" }
 
+prost = "^0.12"
 winreg = "^0.52"
 windows = "^0"
 libloading = "^0.8"
@@ -41,6 +48,7 @@ tokio-test = "^0.4"
 crossbeam-utils = "^0.8"
 crossbeam-epoch = "^0.9"
 rand = "^0.8"
+
 #cipher
 sha2 = "^0.10"
 aes-gcm = "^0.10"

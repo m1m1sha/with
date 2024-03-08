@@ -1461,8 +1461,14 @@ dependencies = [
 name = "with"
 version = "0.0.0"
 dependencies = [
+ "cipher 0.1.0",
+ "nat",
+ "prost",
  "prost-build",
+ "protocol",
  "serde",
+ "tokio",
+ "utils",
 ]
 
 [[package]]
