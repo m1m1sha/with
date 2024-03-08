@@ -5,7 +5,7 @@ mod aes_cbc;
 mod aes_ecb;
 #[cfg(any(feature = "aes_gcm", feature = "server_encrypt"))]
 #[cfg(not(feature = "ring-cipher"))]
-mod aes_gcm_cipher;
+mod aes_gcm;
 #[cfg(any(
     feature = "aes_gcm",
     feature = "server_encrypt",
@@ -30,9 +30,9 @@ mod sm4_cbc;
 ))]
 pub use finger::Finger;
 #[cfg(feature = "server_encrypt")]
-mod rsa_cipher;
+mod rsa;
 #[cfg(feature = "server_encrypt")]
-pub use rsa_cipher::RsaCipher;
+pub use rsa::RsaCipher;
 
 #[cfg(feature = "aes_cbc")]
 use crate::aes_cbc::AesCbcCipher;
@@ -40,7 +40,7 @@ use crate::aes_cbc::AesCbcCipher;
 use crate::aes_ecb::AesEcbCipher;
 #[cfg(any(feature = "aes_gcm", feature = "server_encrypt"))]
 #[cfg(not(feature = "ring-cipher"))]
-use crate::aes_gcm_cipher::AesGcmCipher;
+use crate::aes_gcm::AesGcmCipher;
 #[cfg(any(feature = "aes_gcm", feature = "server_encrypt"))]
 #[cfg(feature = "ring-cipher")]
 use crate::ring_aes_gcm_cipher::AesGcmCipher;
