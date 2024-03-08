@@ -1,4 +1,4 @@
-use crate::cipher::Finger;
+use crate::Finger;
 use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyInit};
 use protocol::{NetPacket, HEAD_LEN};
 use std::io;
@@ -72,7 +72,7 @@ impl AesEcbCipher {
             net_packet.set_data_len(net_packet.data_len() - finger.len())?;
         }
         if net_packet.payload().len() < 16 {
-            log::error!("数据异常,长度{}小于{}", net_packet.payload().len(), 16);
+            tracing::error!("数据异常,长度{}小于{}", net_packet.payload().len(), 16);
             return Err(io::Error::new(io::ErrorKind::Other, "data err"));
         }
         let mut out = [0u8; 1024 * 5];

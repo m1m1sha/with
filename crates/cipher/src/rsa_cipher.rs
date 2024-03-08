@@ -1,7 +1,7 @@
-use crate::protocol::NetPacket;
+use protocol::NetPacket;
 use std::io;
 use {
-    crate::protocol::body::{RsaSecretBody, RSA_ENCRYPTION_RESERVED},
+    protocol::body::{RsaSecretBody, RSA_ENCRYPTION_RESERVED},
     rand::Rng,
     rsa::pkcs8::der::Decode,
     rsa::RsaPublicKey,

@@ -5,6 +5,9 @@ edition = "2021"
 
 [dependencies]
 protocol = { workspace = true }
+tracing = { workspace = true }
+rand = { workspace = true }
+sha2 = { workspace = true, features = ["oid"] }
 aes-gcm = { workspace = true, optional = true }
 ring = { workspace = true, optional = true }
 cbc = { workspace = true, optional = true }

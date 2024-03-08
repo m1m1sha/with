@@ -5,8 +5,8 @@ use aes_gcm::aead::generic_array::GenericArray;
 use aes_gcm::{AeadInPlace, Aes128Gcm, Aes256Gcm, Key, KeyInit, Nonce, Tag};
 use rand::RngCore;
 
-use crate::cipher::finger::Finger;
-use crate::protocol::{body::SecretBody, body::AES_GCM_ENCRYPTION_RESERVED, NetPacket};
+use crate::finger::Finger;
+use protocol::{body::SecretBody, body::AES_GCM_ENCRYPTION_RESERVED, NetPacket};
 
 #[derive(Clone)]
 pub struct AesGcmCipher {
@@ -45,7 +45,7 @@ impl AesGcmCipher {
             return Err(io::Error::new(io::ErrorKind::Other, "not encrypt"));
         }
         if net_packet.payload().len() < AES_GCM_ENCRYPTION_RESERVED {
-            log::error!("数据异常,长度小于{}", AES_GCM_ENCRYPTION_RESERVED);
+            tracing::error!("数据异常,长度小于{}", AES_GCM_ENCRYPTION_RESERVED);
             return Err(io::Error::new(io::ErrorKind::Other, "data err"));
         }
         let mut nonce_raw = [0; 12];

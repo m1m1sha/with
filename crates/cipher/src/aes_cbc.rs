@@ -3,7 +3,7 @@ use std::io;
 use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use rand::RngCore;
 
-use crate::cipher::Finger;
+use crate::Finger;
 use protocol::body::AesCbcSecretBody;
 use protocol::{NetPacket, HEAD_LEN};
 
@@ -56,7 +56,7 @@ impl AesCbcCipher {
             return Err(io::Error::new(io::ErrorKind::Other, "not encrypt"));
         }
         if net_packet.payload().len() < 16 {
-            log::error!("数据异常,长度{}小于{}", net_packet.payload().len(), 16);
+            tracing::error!("数据异常,长度{}小于{}", net_packet.payload().len(), 16);
             return Err(io::Error::new(io::ErrorKind::Other, "data err"));
         }
         let mut iv = [0; 16];

@@ -1,7 +1,7 @@
-use crate::cipher::Finger;
-use crate::protocol::{NetPacket, HEAD_LEN};
+use crate::Finger;
 use libsm::sm4::cipher_mode::CipherMode;
 use libsm::sm4::Sm4CipherMode;
+use protocol::{NetPacket, HEAD_LEN};
 use rand::RngCore;
 use std::io;
 
@@ -69,7 +69,7 @@ impl Sm4CbcCipher {
         let payload = net_packet.payload();
         let len = payload.len();
         if len < 16 || len > 1024 * 4 {
-            log::error!("数据异常,长度{}小于16或大于4096", len);
+            tracing::error!("数据异常,长度{}小于16或大于4096", len);
             return Err(io::Error::new(io::ErrorKind::Other, "data err"));
         }
         let mut out = [0u8; 1024 * 4];
@@ -117,7 +117,7 @@ impl Sm4CbcCipher {
         let mut iv = [0u8; 16];
         rand::thread_rng().fill_bytes(&mut iv);
         if net_packet.data_len() > 1024 * 4 - 32 {
-            log::error!(
+            tracing::error!(
                 "数据异常,长度{}大于1024 * 4 - 32",
                 net_packet.buffer().len()
             );

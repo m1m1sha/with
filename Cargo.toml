@@ -41,8 +41,8 @@ tokio-test = "^0.4"
 crossbeam-utils = "^0.8"
 crossbeam-epoch = "^0.9"
 rand = "^0.8"
-
 #cipher
+sha2 = "^0.10"
 aes-gcm = "^0.10"
 ring = "^0.17"
 cbc = "^0.1"
