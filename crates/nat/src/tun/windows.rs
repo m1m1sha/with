@@ -20,8 +20,6 @@ use windows::{
 
 use super::device::IFace;
 
-use self::util::Profile;
-
 pub mod log;
 pub mod netsh;
 pub mod packet;
@@ -43,7 +41,6 @@ unsafe impl<T> Sync for UnsafeHandle<T> {}
 pub struct Device {
     pub(crate) luid: u64,
     pub(crate) guid: u128,
-    pub(crate) profiles: HashMap<String, Profile>,
     pub(crate) index: u32,
     pub(crate) session: UnsafeHandle<wintun_raw::WINTUN_SESSION_HANDLE>,
     pub(crate) win_tun: Arc<wintun_raw::wintun>,
@@ -93,10 +90,10 @@ impl Device {
         // 所以不存在删除其他实例正在使用的网卡情况
         let _ = Self::delete_with_name_before_new(&win_tun, &name_utf16);
         log::set_default_logger_if_unset(&win_tun);
-        let mut profiles: HashMap<String, Profile> = HashMap::new();
+
         if utils::root::is_elevated() {
-            let _ = util::delete_reg_with_tun_name(name.clone());
-            profiles = util::get_profiles()?;
+            // 未知影响, 但好像没事
+            let _ = util::clear_network_list();
         }
 
         // 此处生成的guid储存于
@@ -132,7 +129,6 @@ impl Device {
         Ok(Self {
             luid: unsafe { std::mem::transmute(luid) },
             guid,
-            profiles,
             index,
             session: UnsafeHandle(session),
             win_tun,
@@ -331,32 +327,6 @@ impl Drop for Device {
         unsafe { self.win_tun.WintunCloseAdapter(self.adapter.0) };
         if 1 != unsafe { self.win_tun.WintunDeleteDriver() } {
             tracing::warn!("WintunDeleteDriver failed")
-        }
-
-        let after_profiles = util::get_profiles().unwrap_or_default();
-
-        if utils::root::is_elevated() {
-            let mut profile_guid: Option<String> = None;
-
-            // 仅当只存在一个网卡注册表有区别时
-            for (g, _) in after_profiles {
-                if !self.profiles.contains_key(&g) {
-                    if profile_guid.is_none() {
-                        profile_guid = Some(g);
-                    } else {
-                        profile_guid = None;
-                        tracing::warn!(
-                            "Multiple network list configuration file changes have occurred"
-                        );
-                        break;
-                    }
-                }
-            }
-
-            // 删除指定guid的注册表
-            if let Some(guid) = profile_guid {
-                let _ = util::delete_reg_with_tun_guid(guid);
-            }
         }
     }
 }

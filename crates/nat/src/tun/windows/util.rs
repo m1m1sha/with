@@ -107,39 +107,6 @@ pub fn luid_to_alias(luid: &NET_LUID_LH) -> Result<Vec<u16>> {
     }
 }
 
-/// 删除以xx为开头的网卡注册表
-/// 例如：with_tun_0 | with_tun_0 2
-pub fn delete_reg_with_tun_name(name: String) -> Result<()> {
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    let network_list =
-        hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList\\Profiles")?;
-
-    // guid: {guid}
-    for guid in network_list.enum_keys().map(|x| x.unwrap()) {
-        let adapter = network_list.open_subkey(guid.clone())?;
-        let profile: String = adapter.get_value("ProfileName")?;
-        if profile
-            .to_ascii_lowercase()
-            .starts_with(&name.to_ascii_lowercase())
-        {
-            network_list.delete_subkey(guid)?;
-        }
-    }
-
-    Ok(())
-}
-
-/// 删除指定guid的网卡注册表
-pub fn delete_reg_with_tun_guid(guid: String) -> Result<()> {
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    let network_list =
-        hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList\\Profiles")?;
-
-    network_list.delete_subkey(format!("{{{}}}", guid))?;
-
-    Ok(())
-}
-
 // 更激进的方式, 清除所有 profile 未知的影响
 pub fn clear_network_list() -> Result<()> {
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
@@ -150,31 +117,4 @@ pub fn clear_network_list() -> Result<()> {
     let signature = network_list.open_subkey("Signatures")?;
     signature.delete_subkey("Unmanaged")?;
     Ok(())
-}
-
-#[derive(Debug, Clone)]
-pub struct Profile {
-    pub profile_name: String,
-    pub description: String,
-}
-
-pub fn get_profiles() -> Result<HashMap<String, Profile>> {
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    let network_list =
-        hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList\\Profiles")?;
-    let mut profiles = HashMap::new();
-    for guid in network_list.enum_keys().map(|x| x.unwrap()) {
-        let adapter = network_list.open_subkey(guid.clone())?;
-        let profile_name: String = adapter.get_value("ProfileName")?;
-        let description: String = adapter.get_value("Description")?;
-
-        profiles.insert(
-            guid.replace(['{', '}'], "").to_string(),
-            Profile {
-                profile_name,
-                description,
-            },
-        );
-    }
-    Ok(profiles)
 }
