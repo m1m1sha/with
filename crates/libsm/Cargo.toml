@@ -21,6 +21,3 @@ num-integer = { workspace = true }
 yasna = { workspace = true, features = ["num-bigint"] }
 lazy_static = { workspace = true }
 getrandom = { workspace = true, features = ["js"] }
-
-[features]
-internal_benches = []
