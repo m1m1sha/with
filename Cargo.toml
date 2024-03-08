@@ -7,12 +7,14 @@ authors = ["m1m1sha"]
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
 
+
 [workspace]
-members = ["crates/packet", "crates/tun", "crates/utils"]
+members = ["crates/packet", "crates/stun", "crates/tun", "crates/utils"]
 
 [workspace.dependencies]
 packet = { path = "crates/packet" }
 tun = { path = "crates/tun" }
+stun = { path = "crates/stun" }
 utils = { path = "crates/utils" }
 winreg = "^0.52"
 windows = "^0.54"
@@ -24,3 +26,8 @@ tokio = "^1"
 encoding = "^0.2"
 serde = "^1"
 parking_lot = "^0.12"
+stun-format = "^1"
+tokio-test = "^0.4"
+
+[build-dependencies]
+prost-build = "^0.12"
