@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     io::{Error, Result},
     sync::Arc,
 };
@@ -33,6 +32,7 @@ pub fn decode_utf16(string: &[u16]) -> String {
     String::from_utf16_lossy(&string[..end])
 }
 
+#[allow(dead_code)]
 pub(crate) fn get_adapters_addresses<F>(mut callback: F) -> Result<()>
 where
     F: FnMut(IP_ADAPTER_ADDRESSES_LH) -> Result<()>,
@@ -88,6 +88,7 @@ pub fn luid_to_index(luid: &NET_LUID_LH) -> Result<u32> {
     }
 }
 
+#[allow(dead_code)]
 pub fn luid_to_guid(luid: &NET_LUID_LH) -> Result<GUID> {
     let mut guid = unsafe { std::mem::zeroed() };
 

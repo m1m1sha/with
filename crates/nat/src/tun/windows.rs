@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     io::{Error, ErrorKind, Result},
     net::Ipv4Addr,
     slice,
@@ -29,6 +28,7 @@ pub mod wintun_raw;
 /// The maximum size of wintun's internal ring buffer (in bytes)
 pub const MAX_RING_CAPACITY: u32 = 0x400_0000;
 /// The minimum size of wintun's internal ring buffer (in bytes)
+#[allow(dead_code)]
 pub const MIN_RING_CAPACITY: u32 = 0x2_0000;
 /// Maximum pool name length including zero terminator
 pub const MAX_POOL: usize = 256;

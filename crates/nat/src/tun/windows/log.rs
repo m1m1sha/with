@@ -10,6 +10,7 @@ pub fn set_logger(wintun: &Arc<wintun_raw::wintun>, f: wintun_raw::WINTUN_LOGGER
     unsafe { wintun.WintunSetLogger(f) };
 }
 
+#[allow(dead_code)]
 pub fn reset_logger(wintun: &Arc<wintun_raw::wintun>) {
     set_logger(wintun, None);
 }
