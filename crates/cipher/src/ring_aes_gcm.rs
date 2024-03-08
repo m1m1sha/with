@@ -59,7 +59,7 @@ impl AesGcmCipher {
             return Err(io::Error::new(io::ErrorKind::Other, "not encrypt"));
         }
         if net_packet.payload().len() < AES_GCM_ENCRYPTION_RESERVED {
-            log::error!("数据异常,长度小于{}", AES_GCM_ENCRYPTION_RESERVED);
+            tracing::error!("数据异常,长度小于{}", AES_GCM_ENCRYPTION_RESERVED);
             return Err(io::Error::new(io::ErrorKind::Other, "data err"));
         }
         let mut nonce_raw = [0; 12];
