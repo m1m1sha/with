@@ -252,7 +252,7 @@ impl<Call: Callback> ServerPacketHandler<Call> {
                         || old.virtual_netmask != virtual_netmask
                     {
                         if old.virtual_ip != Ipv4Addr::UNSPECIFIED {
-                            tracing::info!("ip发生变化,old:{:?},response={:?}", old, response);
+                            tracing::info!("ip发生变化, old:{:?}, response: {:?}", old, response);
                         }
                         if let Err(e) = self.device.set_ip(virtual_ip, virtual_netmask) {
                             self.call.error(ErrorInfo::new_msg(
@@ -264,11 +264,11 @@ impl<Call: Callback> ServerPacketHandler<Call> {
                         let mut guard = self.route_record.lock();
                         for (dest, mask) in guard.drain(..) {
                             if let Err(e) = self.device.delete_route(dest, mask) {
-                                tracing::warn!("删除路由失败 ={:?}", e);
+                                tracing::warn!("删除路由失败:{:?}", e);
                             }
                         }
                         if let Err(e) = self.device.add_route(virtual_network, virtual_netmask, 1) {
-                            tracing::warn!("添加默认路由失败 ={:?}", e);
+                            tracing::warn!("添加默认路由失败: {:?}", e);
                         } else {
                             guard.push((virtual_network, virtual_netmask));
                         }
@@ -276,7 +276,7 @@ impl<Call: Callback> ServerPacketHandler<Call> {
                             self.device
                                 .add_route(Ipv4Addr::BROADCAST, Ipv4Addr::BROADCAST, 1)
                         {
-                            tracing::warn!("添加广播路由失败 ={:?}", e);
+                            tracing::warn!("添加广播路由失败: {:?}", e);
                         } else {
                             guard.push((Ipv4Addr::BROADCAST, Ipv4Addr::BROADCAST));
                         }
@@ -286,7 +286,7 @@ impl<Call: Callback> ServerPacketHandler<Call> {
                             Ipv4Addr::from([240, 0, 0, 0]),
                             1,
                         ) {
-                            tracing::warn!("添加组播路由失败 ={:?}", e);
+                            tracing::warn!("添加组播路由失败: {:?}", e);
                         } else {
                             guard.push((
                                 Ipv4Addr::from([224, 0, 0, 0]),
@@ -296,7 +296,7 @@ impl<Call: Callback> ServerPacketHandler<Call> {
 
                         for (dest, mask) in self.external_route.to_route() {
                             if let Err(e) = self.device.add_route(dest, mask, 1) {
-                                tracing::warn!("添加路由失败 ={:?}", e);
+                                tracing::warn!("添加路由失败: {:?}", e);
                             } else {
                                 guard.push((dest, mask));
                             }

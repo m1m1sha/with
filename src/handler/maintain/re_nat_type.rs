@@ -30,7 +30,7 @@ fn retrieve_nat_type0(
             let local_ipv6 = nat::stun::local_ipv6().await;
             match nat_test.re_test(local_ipv4, local_ipv6).await {
                 Ok(nat_info) => {
-                    tracing::info!("当前nat信息:{:?}", nat_info);
+                    tracing::info!("当前nat信息: {:?}", nat_info);
                     if let Err(e) = context.switch(nat_info.nat_type, &udp_socket_sender) {
                         tracing::warn!("{:?}", e);
                     }

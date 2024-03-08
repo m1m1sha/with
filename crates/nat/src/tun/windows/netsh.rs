@@ -1,3 +1,4 @@
+use encoding::{all::GBK, DecoderTrap, Encoding};
 use std::{
     io::{Error, ErrorKind, Result},
     net::Ipv4Addr,
@@ -11,11 +12,19 @@ pub fn cmd(args: &[&str]) -> Result<Vec<u8>> {
         .args(args)
         .output()?;
     if !out.status.success() {
-        let err = String::from_utf8_lossy(if out.stderr.is_empty() {
+        let stdout = if out.stderr.is_empty() {
             &out.stdout
         } else {
             &out.stderr
-        });
+        };
+        let mut err = String::from_utf8_lossy(stdout).to_string();
+
+        if err.contains('�') {
+            err = GBK
+                .decode(stdout, DecoderTrap::Strict)
+                .unwrap_or(err.to_string());
+        }
+
         let info = format!("netsh failed with: \"{}\"", err);
         return Err(Error::new(ErrorKind::Other, info));
     }

@@ -11,6 +11,7 @@ stun-format = { workspace = true, features = ["fmt", "rfc3489"] }
 serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["full"] }
 utils = { workspace = true }
+encoding = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 libloading = { workspace = true }
