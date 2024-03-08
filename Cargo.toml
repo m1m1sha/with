@@ -10,6 +10,14 @@ utils = { workspace = true }
 protocol = { workspace = true }
 cipher = { workspace = true }
 prost = { workspace = true }
+tracing = { workspace = true }
+crossbeam-utils = { workspace = true }
+packet = { workspace = true }
+parking_lot = { workspace = true }
+socket2 = { workspace = true }
+bytes = { workspace = true }
+rand = { workspace = true }
+mio = { workspace = true, features = ["os-poll", "net"] }
 tokio = { workspace = true, features = ["full"] }
 serde = { workspace = true, features = ["derive"] }
 
@@ -48,6 +56,9 @@ tokio-test = "^0.4"
 crossbeam-utils = "^0.8"
 crossbeam-epoch = "^0.9"
 rand = "^0.8"
+socket2 = "^0.5"
+mio = "^0.8"
+bytes = "^1"
 
 #cipher
 sha2 = "^0.10"
