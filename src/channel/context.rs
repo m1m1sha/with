@@ -256,10 +256,10 @@ impl ContextInner {
         id: &Ipv4Addr,
         server_addr: SocketAddr,
     ) -> io::Result<()> {
-        if self.packet_loss_rate > 0 {
-            if rand::thread_rng().gen_ratio(self.packet_loss_rate, PACKET_LOSS_RATE_DENOMINATOR) {
-                return Ok(());
-            }
+        if self.packet_loss_rate > 0
+            && rand::thread_rng().gen_ratio(self.packet_loss_rate, PACKET_LOSS_RATE_DENOMINATOR)
+        {
+            return Ok(());
         }
         if self.packet_delay > 0 {
             std::thread::sleep(Duration::from_millis(self.packet_delay as _));
@@ -282,27 +282,23 @@ impl ContextInner {
         } else {
             if let Some(main_udp) = self.main_udp_socket.get(route_key.index) {
                 main_udp.send_to(buf, route_key.addr)?;
+            } else if let Some(udp) = self
+                .sub_udp_socket
+                .read()
+                .get(route_key.index - self.main_udp_socket.len())
+            {
+                udp.send_to(buf, route_key.addr)?;
             } else {
-                if let Some(udp) = self
-                    .sub_udp_socket
-                    .read()
-                    .get(route_key.index - self.main_udp_socket.len())
-                {
-                    udp.send_to(buf, route_key.addr)?;
-                } else {
-                    Err(io::Error::from(io::ErrorKind::NotFound))?
-                }
+                Err(io::Error::from(io::ErrorKind::NotFound))?
             }
             Ok(())
         }
     }
     pub fn remove_route(&self, ip: &Ipv4Addr, route_key: RouteKey) {
-        if self.route_table.remove_route(ip, route_key) {
-            if route_key.is_tcp {
-                if let Some(tcp) = self.tcp_map.write().remove(&route_key.addr) {
-                    if let Err(e) = tcp.shutdown() {
-                        tracing::warn!("{:?}", e);
-                    }
+        if self.route_table.remove_route(ip, route_key) && route_key.is_tcp {
+            if let Some(tcp) = self.tcp_map.write().remove(&route_key.addr) {
+                if let Err(e) = tcp.shutdown() {
+                    tracing::warn!("{:?}", e);
                 }
             }
         }
@@ -460,7 +456,7 @@ impl RouteTable {
         let table = self.route_table.read();
         table
             .iter()
-            .map(|(k, (_, v))| (k.clone(), v.iter().map(|(i, _)| *i).collect()))
+            .map(|(k, (_, v))| (*k, v.iter().map(|(i, _)| *i).collect()))
             .collect()
     }
     pub fn route_table_p2p(&self) -> Vec<(Ipv4Addr, Route)> {
@@ -496,7 +492,7 @@ impl RouteTable {
                 false
             }
         } else {
-            return true;
+            true
         }
     }
     /// 更新路由入栈包的时刻，长时间没有收到数据的路由将会被剔除

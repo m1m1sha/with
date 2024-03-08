@@ -190,10 +190,8 @@ where
     loop {
         match udp_socket.recv_from(&mut buf) {
             Ok((len, addr)) => {
-                if &buf[..len] == b"stop" {
-                    if context.is_stop() {
-                        return Ok(());
-                    }
+                if &buf[..len] == b"stop" && context.is_stop() {
+                    return Ok(());
                 }
                 recv_handler.handle(&mut buf[..len], RouteKey::new(false, index, addr), &context);
             }

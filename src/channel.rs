@@ -21,9 +21,11 @@ pub mod udp_channel;
 
 const BUFFER_SIZE: usize = 1024 * 16;
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Default)]
 pub enum UseChannelType {
     Relay,
     P2p,
+    #[default]
     All,
 }
 impl UseChannelType {
@@ -47,11 +49,6 @@ impl FromStr for UseChannelType {
             "all" => Ok(UseChannelType::All),
             _ => Err(format!("not match '{}', enum: relay/p2p/all", s)),
         }
-    }
-}
-impl Default for UseChannelType {
-    fn default() -> Self {
-        UseChannelType::All
     }
 }
 #[derive(Copy, Clone, Eq, PartialEq)]

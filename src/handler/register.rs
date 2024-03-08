@@ -40,7 +40,7 @@ pub fn registration_request_packet(
     net_packet.set_protocol(Protocol::Service);
     net_packet.set_transport_protocol(service::Protocol::RegistrationRequest.into());
     net_packet.first_set_ttl(MAX_TTL);
-    net_packet.set_payload(&bytes)?;
+    net_packet.set_payload(bytes)?;
     server_cipher.encrypt_ipv4(&mut net_packet)?;
     Ok(net_packet)
 }

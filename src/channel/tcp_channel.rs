@@ -216,11 +216,11 @@ fn tcp_writable_listen(
                         if let Some(tokens) = writable_notify.take_all() {
                             for (token, state) in tokens {
                                 if !state {
-                                    closed_handle_w(&token, &mut write_map, &context);
+                                    closed_handle_w(&token, &mut write_map, context);
                                     continue;
                                 }
                                 if let Err(e) = writable_handle(&token, &mut write_map) {
-                                    closed_handle_w(&token, &mut write_map, &context);
+                                    closed_handle_w(&token, &mut write_map, context);
                                     tracing::warn!("{:?}", e);
                                 }
                             }
@@ -254,11 +254,11 @@ fn tcp_writable_listen(
                 token => {
                     if event.is_writable() {
                         if let Err(e) = writable_handle(&token, &mut write_map) {
-                            closed_handle_w(&token, &mut write_map, &context);
+                            closed_handle_w(&token, &mut write_map, context);
                             tracing::warn!("{:?}", e);
                         }
                     } else {
-                        closed_handle_w(&token, &mut write_map, &context);
+                        closed_handle_w(&token, &mut write_map, context);
                     }
                 }
             }

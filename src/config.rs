@@ -50,7 +50,7 @@ impl Config {
             Some(servers) => {
                 let mut servers = servers;
                 for x in servers.iter_mut() {
-                    if !x.contains(":") {
+                    if !x.contains(':') {
                         x.push_str(":3478");
                     }
                 }

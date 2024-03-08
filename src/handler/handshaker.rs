@@ -61,6 +61,6 @@ pub fn secret_handshake_request_packet(
     net_packet.set_protocol(Protocol::Service);
     net_packet.set_transport_protocol(service::Protocol::SecretHandshakeRequest.into());
     net_packet.first_set_ttl(MAX_TTL);
-    net_packet.set_payload(&bytes)?;
-    Ok(rsa_cipher.encrypt(&mut net_packet)?)
+    net_packet.set_payload(bytes)?;
+    rsa_cipher.encrypt(&mut net_packet)
 }
