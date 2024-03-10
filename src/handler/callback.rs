@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 use std::io;
 use std::net::{Ipv4Addr, SocketAddr};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DeviceInfo {
     pub name: String,
     pub version: String,
