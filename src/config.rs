@@ -30,6 +30,7 @@ pub struct Config {
     pub cipher: CipherMode,                 // 加密模式
     pub punch: PunchMode,                   // 打洞模式
     pub channel: ChannelMode,               // 信道模式
+    pub dll_path: Option<String>,           // wintun.dll
     //控制丢包率
     pub packet_loss_rate: Option<f64>,
     pub packet_delay: u32,
@@ -57,6 +58,7 @@ impl Config {
         cipher: CipherMode,
         punch: PunchMode,
         channel: ChannelMode,
+        dll_path: Option<String>,
         packet_loss_rate: Option<f64>,
         packet_delay: u32,
     ) -> Result<Self> {
@@ -108,6 +110,7 @@ impl Config {
             cipher,
             punch,
             channel,
+            dll_path,
             packet_loss_rate,
             packet_delay,
         })
