@@ -34,9 +34,15 @@ use crate::{
     },
     proxy,
 };
+
 #[derive(Clone)]
 pub struct With {
-    core: Core,
+    stoper: Stoper,
+    config: Config,
+    rsa_cipher: Arc<Mutex<Option<RsaCipher>>>,
+    server_cipher: Cipher,
+    client_cipher: Cipher,
+    current_device: Arc<AtomicCell<CurrentDeviceInfo>>,
     nat_test: NatTest,
     context: Context,
     device_list: Arc<Mutex<(u16, Vec<PeerDeviceInfo>)>>,
@@ -45,17 +51,7 @@ pub struct With {
     up_count_watcher: WatchSingleU64Adder,
 }
 
-#[derive(Clone)]
-pub struct Core {
-    stoper: Stoper,
-    config: Config,
-    rsa_cipher: Arc<Mutex<Option<RsaCipher>>>,
-    server_cipher: Cipher,
-    client_cipher: Cipher,
-    current_device: Arc<AtomicCell<CurrentDeviceInfo>>,
-}
-
-impl Core {
+impl With {
     pub fn new<Call: Callback>(call: Call, config: Config) -> Result<Self> {
         // 服务端非对称加密
         let rsa_cipher: Arc<Mutex<Option<RsaCipher>>> = Arc::new(Mutex::new(None));
@@ -82,37 +78,22 @@ impl Core {
 
         let stoper = Stoper::new(move || call.stop());
 
-        Ok(Self {
-            stoper,
-            config,
-            rsa_cipher,
-            server_cipher,
-            client_cipher,
-            current_device,
-        })
-    }
-
-    pub fn stop(&self) {
-        self.stoper.stop();
-    }
-
-    pub async fn init<Call: Callback>(&self, call: Call) -> Result<With> {
         // 设备列表
         let device_list: Arc<Mutex<(u16, Vec<PeerDeviceInfo>)>> =
             Arc::new(Mutex::new((0, Vec::with_capacity(16))));
 
         // 基础信息
         let config_info = BaseConfigInfo::new(
-            self.config.name.clone(),
-            self.config.token.clone(),
-            self.config.ip,
-            self.config.passwd.clone().is_some(),
-            self.config.udi.clone(),
-            self.config.server.to_string().clone(),
+            config.name.clone(),
+            config.token.clone(),
+            config.ip,
+            config.passwd.clone().is_some(),
+            config.udi.clone(),
+            config.server.to_string().clone(),
         );
 
         // 端口
-        let ports = self.config.ports.as_ref().map_or(vec![0, 0], |v| {
+        let ports = config.ports.as_ref().map_or(vec![0, 0], |v| {
             if v.is_empty() {
                 vec![0, 0]
             } else {
@@ -123,11 +104,11 @@ impl Core {
         // 通道上下文
         let (context, tcp_listener) = init_context(
             ports,
-            self.config.channel,
-            self.config.latency,
-            self.config.tcp,
-            self.config.packet_loss_rate,
-            self.config.packet_delay,
+            config.channel,
+            config.latency,
+            config.tcp,
+            config.packet_loss_rate,
+            config.packet_delay,
         )?;
 
         let local_ipv4 = nat::stun::local_ipv4().await;
@@ -138,7 +119,7 @@ impl Core {
         // nat检测工具
         let nat_test = NatTest::new(
             context.channel_num(),
-            self.config.stuns.clone(),
+            config.stuns.clone(),
             local_ipv4,
             local_ipv6,
             udp_ports,
@@ -146,22 +127,22 @@ impl Core {
         );
 
         // 虚拟网卡
-        let device = crate::tun::create_device(&self.config)?;
+        let device = crate::tun::create_device(&config)?;
         let tun_info = handler::callback::DeviceInfo::new(device.name()?, device.version()?);
         call.create_tun(tun_info);
         // 定时器
-        let scheduler = Scheduler::new(self.stoper.clone())?;
-        let inbound_route = external::Route::new(self.config.inbound.clone());
-        let outbound_route = external::AllowRoute::new(self.config.outbound.clone());
+        let scheduler = Scheduler::new(stoper.clone())?;
+        let inbound_route = external::Route::new(config.inbound.clone());
+        let outbound_route = external::AllowRoute::new(config.outbound.clone());
 
         // 内置代理
-        let proxy_map = match !self.config.inbound.is_empty() && self.config.proxy {
+        let proxy_map = match !config.inbound.is_empty() && config.proxy {
             true => Some(proxy::init_proxy(
                 context.clone(),
                 scheduler.clone(),
-                self.stoper.clone(),
-                self.current_device.clone(),
-                self.client_cipher.clone(),
+                stoper.clone(),
+                current_device.clone(),
+                client_cipher.clone(),
             )?),
             false => None,
         };
@@ -169,20 +150,14 @@ impl Core {
         let (punch_sender, punch_receiver) = sync_channel(3);
         let peer_nat_info_map: Arc<RwLock<HashMap<Ipv4Addr, NatInfo>>> =
             Arc::new(RwLock::new(HashMap::with_capacity(16)));
-        let down_counter = U64Adder::with_capacity(
-            self.config
-                .ports
-                .as_ref()
-                .map(|v| v.len())
-                .unwrap_or_default()
-                + 8,
-        );
+        let down_counter =
+            U64Adder::with_capacity(config.ports.as_ref().map(|v| v.len()).unwrap_or_default() + 8);
         let down_count_watcher = down_counter.watch();
         let handler = RecvDataHandler::new(
-            self.rsa_cipher.clone(),
-            self.server_cipher.clone(),
-            self.client_cipher.clone(),
-            self.current_device.clone(),
+            rsa_cipher.clone(),
+            server_cipher.clone(),
+            client_cipher.clone(),
+            current_device.clone(),
             device.clone(),
             device_list.clone(),
             config_info.clone(),
@@ -198,13 +173,13 @@ impl Core {
 
         // 初始化网络数据通道
         let (udp_socket_sender, tcp_socket_sender) =
-            init_channel(tcp_listener, context.clone(), self.stoper.clone(), handler)?;
+            init_channel(tcp_listener, context.clone(), stoper.clone(), handler)?;
 
         // 打洞逻辑
         let punch = Punch::new(
             context.clone(),
-            self.config.punch,
-            self.config.tcp,
+            config.punch,
+            config.tcp,
             tcp_socket_sender.clone(),
         );
 
@@ -213,22 +188,22 @@ impl Core {
 
         // 虚拟网卡启动
         handler::tun::start(
-            self.stoper.clone(),
+            stoper.clone(),
             context.clone(),
             device.clone(),
-            self.current_device.clone(),
+            current_device.clone(),
             inbound_route,
             proxy_map,
-            self.client_cipher.clone(),
-            self.server_cipher.clone(),
-            self.config.parallel,
+            client_cipher.clone(),
+            server_cipher.clone(),
+            config.parallel,
             up_counter,
         )?;
 
         maintain::idle_gateway(
             &scheduler,
             context.clone(),
-            self.current_device.clone(),
+            current_device.clone(),
             config_info.clone(),
             tcp_socket_sender.clone(),
             call.clone(),
@@ -238,8 +213,8 @@ impl Core {
             let context = context.clone();
             let nat_test = nat_test.clone();
             let device_list = device_list.clone();
-            let current_device = self.current_device.clone();
-            if !self.config.channel.is_only_relay() {
+            let current_device = current_device.clone();
+            if !config.channel.is_only_relay() {
                 // 定时nat探测
                 maintain::retrieve_nat_type(
                     &scheduler,
@@ -255,8 +230,8 @@ impl Core {
                 nat_test.clone(),
                 device_list.clone(),
                 current_device.clone(),
-                self.client_cipher.clone(),
-                self.server_cipher.clone(),
+                client_cipher.clone(),
+                server_cipher.clone(),
                 punch_receiver,
                 config_info.clone(),
                 punch.clone(),
@@ -264,8 +239,13 @@ impl Core {
             );
         }
 
-        Ok(With {
-            core: self.clone(),
+        Ok(Self {
+            stoper,
+            config,
+            rsa_cipher,
+            server_cipher,
+            client_cipher,
+            current_device,
             nat_test,
             context,
             device_list,
