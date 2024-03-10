@@ -53,6 +53,7 @@ pub struct Core {
     server_cipher: Cipher,
     client_cipher: Cipher,
     current_device: Arc<AtomicCell<CurrentDeviceInfo>>,
+    call: Callback,
 }
 
 impl Core {
@@ -89,6 +90,7 @@ impl Core {
             server_cipher,
             client_cipher,
             current_device,
+            call,
         })
     }
 
@@ -96,7 +98,7 @@ impl Core {
         self.stoper.stop();
     }
 
-    pub async fn init<Call: Callback>(&self, call: Call) -> Result<With> {
+    pub async fn init(&self) -> Result<With> {
         // 设备列表
         let device_list: Arc<Mutex<(u16, Vec<PeerDeviceInfo>)>> =
             Arc::new(Mutex::new((0, Vec::with_capacity(16))));
@@ -148,7 +150,7 @@ impl Core {
         // 虚拟网卡
         let device = crate::tun::create_device(&self.config)?;
         let tun_info = handler::callback::DeviceInfo::new(device.name()?, device.version()?);
-        call.create_tun(tun_info);
+        self.call.create_tun(tun_info);
         // 定时器
         let scheduler = Scheduler::new(self.stoper.clone())?;
         let inbound_route = external::Route::new(self.config.inbound.clone());
@@ -187,7 +189,7 @@ impl Core {
             device_list.clone(),
             config_info.clone(),
             nat_test.clone(),
-            call.clone(),
+            self.call.clone(),
             punch_sender,
             peer_nat_info_map.clone(),
             inbound_route.clone(),
@@ -231,7 +233,7 @@ impl Core {
             self.current_device.clone(),
             config_info.clone(),
             tcp_socket_sender.clone(),
-            call.clone(),
+            self.call.clone(),
             0,
         );
         {
@@ -260,7 +262,7 @@ impl Core {
                 punch_receiver,
                 config_info.clone(),
                 punch.clone(),
-                call.clone(),
+                self.call.clone(),
             );
         }
 
