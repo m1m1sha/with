@@ -129,7 +129,7 @@ impl With {
         // 虚拟网卡
         let device = crate::tun::create_device(&config)?;
         let tun_info = handler::callback::DeviceInfo::new(device.name()?, device.version()?);
-        call.create_tun(tun_info);
+        call.clone().create_tun(tun_info);
         // 定时器
         let scheduler = Scheduler::new(stoper.clone())?;
         let inbound_route = external::Route::new(config.inbound.clone());
