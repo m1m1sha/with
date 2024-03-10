@@ -76,7 +76,10 @@ impl With {
         // 当前设备信息
         let current_device = Arc::new(AtomicCell::new(CurrentDeviceInfo::new0(config.server)));
 
-        let stoper = Stoper::new(move || call.clone().stop());
+        let stoper = {
+            let call = call.clone();
+            Stoper::new(move || call.stop())
+        };
 
         // 设备列表
         let device_list: Arc<Mutex<(u16, Vec<PeerDeviceInfo>)>> =
