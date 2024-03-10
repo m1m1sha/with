@@ -4,6 +4,9 @@ use std::fmt::{Display, Formatter};
 use std::io;
 use std::net::{Ipv4Addr, SocketAddr};
 
+use crate::channel::context::RouteTable;
+use crate::channel::Route;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeviceInfo {
     pub name: String,
@@ -194,4 +197,6 @@ pub trait Callback: Clone + Send + Sync + 'static {
     fn error(&self, _info: ErrorInfo) {}
     /// 服务停止
     fn stop(&self) {}
+    /// 路由变化
+    fn route_change(&self, _info: Vec<(Ipv4Addr, Vec<Route>)>) {}
 }
