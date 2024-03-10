@@ -56,7 +56,7 @@ pub struct Core {
 }
 
 impl Core {
-    pub fn new(config: Config) -> Result<Self> {
+    pub fn new<Call: Callback>(call: Call, config: Config) -> Result<Self> {
         // 服务端非对称加密
         let rsa_cipher: Arc<Mutex<Option<RsaCipher>>> = Arc::new(Mutex::new(None));
         // 服务端对称加密
@@ -80,7 +80,7 @@ impl Core {
         // 当前设备信息
         let current_device = Arc::new(AtomicCell::new(CurrentDeviceInfo::new0(config.server)));
 
-        let stoper = Stoper::new(move || {});
+        let stoper = Stoper::new(move || call.stop());
 
         Ok(Self {
             stoper,
@@ -155,16 +155,15 @@ impl Core {
         let outbound_route = external::AllowRoute::new(self.config.outbound.clone());
 
         // 内置代理
-        let proxy_map = if !self.config.inbound.is_empty() && self.config.proxy {
-            Some(proxy::init_proxy(
+        let proxy_map = match !self.config.inbound.is_empty() && self.config.proxy {
+            true => Some(proxy::init_proxy(
                 context.clone(),
                 scheduler.clone(),
                 self.stoper.clone(),
                 self.current_device.clone(),
                 self.client_cipher.clone(),
-            )?)
-        } else {
-            None
+            )?),
+            false => None,
         };
 
         let (punch_sender, punch_receiver) = sync_channel(3);
