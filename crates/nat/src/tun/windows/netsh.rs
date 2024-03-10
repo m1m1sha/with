@@ -28,6 +28,7 @@ pub fn cmd(program: &str, args: &[&str]) -> Result<Vec<u8>> {
         let info = format!("netsh failed with: \"{}\"", err);
         return Err(Error::new(ErrorKind::Other, info));
     }
+    tracing::info!("{}: {}", program, args.join(" "));
     Ok(out.stdout)
 }
 
