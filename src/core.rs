@@ -52,7 +52,7 @@ pub struct With {
 }
 
 impl With {
-    pub fn new<Call: Callback>(call: Call, config: Config) -> Result<Self> {
+    pub async fn new<Call: Callback>(call: Call, config: Config) -> Result<Self> {
         // 服务端非对称加密
         let rsa_cipher: Arc<Mutex<Option<RsaCipher>>> = Arc::new(Mutex::new(None));
         // 服务端对称加密
