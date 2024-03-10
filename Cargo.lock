@@ -1526,7 +1526,7 @@ dependencies = [
 
 [[package]]
 name = "with"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "bytes",
  "cipher 0.1.0",
