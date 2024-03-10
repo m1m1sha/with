@@ -450,6 +450,7 @@ impl<Call: Callback> ServerPacketHandler<Call> {
                     //发送到默认服务端即可
                     context.send_default(poll_device.buffer(), current_device.connect_server)?;
                 }
+                self.call.route_change(context.route_table.route_table())
             }
             ControlPacket::AddrResponse(addr_packet) => {
                 //更新本地公网ipv4

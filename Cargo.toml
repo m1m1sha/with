@@ -43,7 +43,7 @@ libsm = { path = "crates/libsm" }
 
 prost = "^0.12"
 winreg = "^0.52"
-windows = "^0"
+windows = "^0.54"
 libloading = "^0.8"
 byteorder = "^1"
 tracing = "^0"

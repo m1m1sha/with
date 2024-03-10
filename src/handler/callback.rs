@@ -1,9 +1,13 @@
 use rsa::RsaPublicKey;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::io;
 use std::net::{Ipv4Addr, SocketAddr};
 
-#[derive(Debug)]
+use crate::channel::context::RouteTable;
+use crate::channel::Route;
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DeviceInfo {
     pub name: String,
     pub version: String,
@@ -21,7 +25,7 @@ impl DeviceInfo {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ConnectInfo {
     // 第几次连接，从1开始
     pub count: usize,
@@ -41,9 +45,10 @@ impl ConnectInfo {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct HandshakeInfo {
     //服务端公钥
+    #[serde(skip_serializing, skip_deserializing)]
     pub public_key: Option<RsaPublicKey>,
     //服务端指纹
     pub finger: Option<String>,
@@ -60,8 +65,6 @@ impl Display for HandshakeInfo {
                 finger, self.version
             )),
         };
-        #[cfg(not(feature = "server_encrypt"))]
-        f.write_str(&format!("server version={}", self.version))
     }
 }
 
@@ -82,7 +85,7 @@ impl HandshakeInfo {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RegisterInfo {
     //本机虚拟IP
     pub virtual_ip: Ipv4Addr,
@@ -111,10 +114,11 @@ impl RegisterInfo {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorInfo {
     pub code: ErrorType,
     pub msg: Option<String>,
+    #[serde(skip_serializing, skip_deserializing)]
     pub source: Option<io::Error>,
 }
 
@@ -148,7 +152,7 @@ impl ErrorInfo {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ErrorType {
     TokenError,
     Disconnect,
@@ -193,4 +197,6 @@ pub trait Callback: Clone + Send + Sync + 'static {
     fn error(&self, _info: ErrorInfo) {}
     /// 服务停止
     fn stop(&self) {}
+    /// 路由变化
+    fn route_change(&self, _info: Vec<(Ipv4Addr, Vec<Route>)>) {}
 }

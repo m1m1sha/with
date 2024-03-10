@@ -12,7 +12,10 @@ pub fn create_device(config: &Config) -> io::Result<Arc<Device>> {
     #[cfg(target_os = "macos")]
     let device = Arc::new(Device::new(config.device_name.clone())?);
     #[cfg(target_os = "windows")]
-    let device = Arc::new(Device::new(DEFAULT_TUN_NAME.to_owned(), None)?);
+    let device = Arc::new(Device::new(
+        DEFAULT_TUN_NAME.to_owned(),
+        config.dll_path.clone(),
+    )?);
     #[cfg(target_os = "android")]
     let device = Arc::new(Device::new(config.device_fd as _)?);
     #[cfg(not(target_os = "android"))]
