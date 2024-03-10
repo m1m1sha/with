@@ -59,7 +59,7 @@ pub enum Status {
     Close,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct Route {
     pub is_tcp: bool,
     index: usize,
