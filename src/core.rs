@@ -323,22 +323,22 @@ pub fn start<Call: Callback>(
 
 impl With {
     pub fn name(&self) -> &str {
-        &self.core.config.name
+        &self.config.name
     }
     pub fn server_encrypt(&self) -> bool {
-        self.core.config.server_encrypt
+        self.config.server_encrypt
     }
     pub fn client_encrypt(&self) -> bool {
-        self.core.config.passwd.is_some()
+        self.config.passwd.is_some()
     }
     pub fn current_device(&self) -> CurrentDeviceInfo {
-        self.core.current_device.load()
+        self.current_device.load()
     }
     pub fn peer_nat_info(&self, ip: &Ipv4Addr) -> Option<NatInfo> {
         self.peer_nat_info_map.read().get(ip).cloned()
     }
     pub fn connection_status(&self) -> ConnectStatus {
-        self.core.current_device.load().status
+        self.current_device.load().status
     }
     pub fn nat_info(&self) -> NatInfo {
         self.nat_test.nat_info()
@@ -353,7 +353,7 @@ impl With {
         self.context.route_table.route_one(ip)
     }
     pub fn is_gateway(&self, ip: &Ipv4Addr) -> bool {
-        self.core.current_device.load().is_gateway(ip)
+        self.current_device.load().is_gateway(ip)
     }
     pub fn route_key(&self, route_key: &RouteKey) -> Option<Ipv4Addr> {
         self.context.route_table.route_to_id(route_key)
@@ -368,9 +368,9 @@ impl With {
         self.down_count_watcher.get()
     }
     pub fn stop(&self) {
-        self.core.stoper.stop()
+        self.stoper.stop()
     }
     pub fn wait(&self) {
-        self.core.stoper.wait()
+        self.stoper.wait()
     }
 }
