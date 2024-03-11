@@ -199,4 +199,6 @@ pub trait Callback: Clone + Send + Sync + 'static {
     fn stop(&self) {}
     /// 路由变化
     fn route_change(&self, _info: Vec<(Ipv4Addr, Vec<Route>)>) {}
+    /// 超时结束
+    fn timeout(&self) {}
 }

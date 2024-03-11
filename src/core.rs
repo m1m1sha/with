@@ -14,7 +14,7 @@ use std::{
         mpsc::{sync_channel, Receiver},
         Arc,
     },
-    time::Duration,
+    time::{Duration, Instant},
 };
 use utils::{
     adder::{SingleU64Adder, U64Adder, WatchSingleU64Adder, WatchU64Adder},
@@ -206,6 +206,7 @@ impl With {
             up_counter,
         )?;
 
+        let timeout = Instant::now() + Duration::from_millis(config.timeout);
         maintain::idle_gateway(
             &scheduler,
             context.clone(),
@@ -214,6 +215,8 @@ impl With {
             tcp_socket_sender.clone(),
             call.clone(),
             0,
+            timeout,
+            stoper.clone(),
         );
         {
             let context = context.clone();

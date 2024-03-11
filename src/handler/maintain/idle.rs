@@ -9,8 +9,9 @@ use mio::net::TcpStream;
 use std::io;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use utils::scheduler::Scheduler;
+use utils::work::Stoper;
 
 pub fn idle_route<Call: Callback>(
     scheduler: &Scheduler,
@@ -35,7 +36,16 @@ pub fn idle_gateway<Call: Callback>(
     tcp_socket_sender: AcceptSocketSender<(TcpStream, SocketAddr, Option<Vec<u8>>)>,
     call: Call,
     mut connect_count: usize,
+    timeout: Instant,
+    stoper: Stoper,
 ) {
+    let now = Instant::now();
+    if now > timeout {
+        call.timeout();
+        stoper.stop();
+        return;
+    }
+
     idle_gateway0(
         &context,
         &current_device_info,
@@ -53,6 +63,8 @@ pub fn idle_gateway<Call: Callback>(
             tcp_socket_sender,
             call,
             connect_count,
+            timeout,
+            stoper,
         )
     });
     if !rs {
