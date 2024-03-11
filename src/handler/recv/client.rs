@@ -98,6 +98,7 @@ impl ClientPacketHandler {
     ) -> io::Result<()> {
         let destination = net_packet.destination();
         let source = net_packet.source();
+        context.route_table.update_read_time(&source, &route_key);
         match turn::ip::Protocol::from(net_packet.transport_protocol()) {
             turn::ip::Protocol::Ipv4 => {
                 let mut ipv4 = IpV4Packet::new(net_packet.payload_mut())?;
