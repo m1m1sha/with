@@ -165,9 +165,9 @@ impl Device {
     }
     pub fn receive_blocking(self: &Arc<Self>) -> Result<packet::Packet> {
         loop {
-            //Try 5 times to receive without blocking so we don't have to issue a syscall to wait
+            //Try 20 times to receive without blocking so we don't have to issue a syscall to wait
             //for the event if packets are being received at a rapid rate
-            for _ in 0..5 {
+            for _ in 0..20 {
                 match self.try_receive() {
                     Err(err) => return Err(err),
                     Ok(Some(packet)) => return Ok(packet),
