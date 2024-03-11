@@ -34,7 +34,6 @@ pub struct Config {
     //控制丢包率
     pub packet_loss_rate: Option<f64>,
     pub packet_delay: u32,
-    pub timeout: usize, // 启动超时结束
 }
 
 impl Config {
@@ -117,7 +116,6 @@ impl Config {
             dll_path,
             packet_loss_rate,
             packet_delay,
-            timeout,
         })
     }
 }

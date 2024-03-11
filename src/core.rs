@@ -6,16 +6,7 @@ use nat::{
 };
 use parking_lot::{Mutex, RwLock};
 use rand::Rng;
-use std::{
-    collections::HashMap,
-    io::Result,
-    net::Ipv4Addr,
-    sync::{
-        mpsc::{sync_channel, Receiver},
-        Arc,
-    },
-    time::{Duration, Instant},
-};
+use std::{collections::HashMap, io::Result, net::Ipv4Addr, sync::Arc, time::Duration};
 use utils::{
     adder::{SingleU64Adder, U64Adder, WatchSingleU64Adder, WatchU64Adder},
     scheduler::Scheduler,
@@ -214,8 +205,6 @@ impl With {
             tcp_socket_sender.clone(),
             call.clone(),
             0,
-            config.timeout,
-            stoper.clone(),
         );
         {
             let context = context.clone();

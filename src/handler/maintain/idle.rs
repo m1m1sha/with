@@ -36,26 +36,15 @@ pub fn idle_gateway<Call: Callback>(
     tcp_socket_sender: AcceptSocketSender<(TcpStream, SocketAddr, Option<Vec<u8>>)>,
     call: Call,
     mut connect_count: usize,
-    timeout: usize,
-    stoper: Stoper,
 ) {
-    match idle_gateway0(
+    let _ = idle_gateway0(
         &context,
         &current_device_info,
         &config,
         &tcp_socket_sender,
         &call,
         &mut connect_count,
-    ) {
-        Ok(_) => {}
-        Err(_) => {
-            if timeout < connect_count {
-                call.timeout();
-                stoper.stop();
-                return;
-            }
-        }
-    };
+    );
 
     let rs = scheduler.timeout(Duration::from_secs(5), move |s| {
         idle_gateway(
@@ -66,8 +55,6 @@ pub fn idle_gateway<Call: Callback>(
             tcp_socket_sender,
             call,
             connect_count,
-            timeout,
-            stoper,
         )
     });
     if !rs {
