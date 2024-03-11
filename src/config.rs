@@ -61,7 +61,6 @@ impl Config {
         dll_path: Option<String>,
         packet_loss_rate: Option<f64>,
         packet_delay: u32,
-        timeout: Option<usize>,
     ) -> Result<Self> {
         let stuns = match stuns {
             Some(servers) => {
@@ -89,8 +88,6 @@ impl Config {
         if name.is_empty() || name.len() > 128 {
             return Err(Error::new(ErrorKind::Other, "name too long or is empty"));
         }
-        // 默认15秒 3次
-        let timeout = timeout.unwrap_or(5);
 
         Ok(Self {
             udi,
