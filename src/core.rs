@@ -32,10 +32,9 @@ use crate::{
 #[derive(Clone)]
 pub struct With {
     stoper: Stoper,
-    config: Config,
-    rsa_cipher: Arc<Mutex<Option<RsaCipher>>>,
-    server_cipher: Cipher,
-    client_cipher: Cipher,
+    name: String,
+    server_encrypt: bool,
+    client_encrypt: bool,
     current_device: Arc<AtomicCell<CurrentDeviceInfo>>,
     nat_test: NatTest,
     context: Context,
@@ -238,10 +237,9 @@ impl With {
 
         Ok(Self {
             stoper,
-            config,
-            rsa_cipher,
-            server_cipher,
-            client_cipher,
+            name: config.name,
+            server_encrypt: config.server_encrypt,
+            client_encrypt: config.passwd.is_some(),
             current_device,
             nat_test,
             context,
@@ -320,13 +318,13 @@ pub fn start<Call: Callback>(
 
 impl With {
     pub fn name(&self) -> &str {
-        &self.config.name
+        &self.name
     }
     pub fn server_encrypt(&self) -> bool {
-        self.config.server_encrypt
+        self.server_encrypt
     }
     pub fn client_encrypt(&self) -> bool {
-        self.config.passwd.is_some()
+        self.client_encrypt
     }
     pub fn current_device(&self) -> CurrentDeviceInfo {
         self.current_device.load()
