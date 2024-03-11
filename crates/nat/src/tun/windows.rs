@@ -117,6 +117,7 @@ impl Device {
             return Err(Error::new(ErrorKind::Other, "Failed to crate adapter"));
         }
 
+        // 会吃130MB左右内存
         let session = unsafe { win_tun.WintunStartSession(adapter, MAX_RING_CAPACITY) };
         if session.is_null() {
             tracing::error!("session is_null {:?}", Error::last_os_error());
