@@ -36,24 +36,27 @@ pub fn idle_gateway<Call: Callback>(
     tcp_socket_sender: AcceptSocketSender<(TcpStream, SocketAddr, Option<Vec<u8>>)>,
     call: Call,
     mut connect_count: usize,
-    timeout: Instant,
+    timeout: usize,
     stoper: Stoper,
 ) {
-    let now = Instant::now();
-    if now > timeout {
-        call.timeout();
-        stoper.stop();
-        return;
-    }
-
-    idle_gateway0(
+    match idle_gateway0(
         &context,
         &current_device_info,
         &config,
         &tcp_socket_sender,
         &call,
         &mut connect_count,
-    );
+    ) {
+        Ok(_) => {}
+        Err(_) => {
+            if timeout < connect_count {
+                call.timeout();
+                stoper.stop();
+                return;
+            }
+        }
+    };
+
     let rs = scheduler.timeout(Duration::from_secs(5), move |s| {
         idle_gateway(
             s,
@@ -78,8 +81,8 @@ fn idle_gateway0<Call: Callback>(
     tcp_socket_sender: &AcceptSocketSender<(TcpStream, SocketAddr, Option<Vec<u8>>)>,
     call: &Call,
     connect_count: &mut usize,
-) {
-    if let Err(e) = check_gateway_channel(
+) -> io::Result<()> {
+    match check_gateway_channel(
         context,
         current_device,
         config,
@@ -87,8 +90,12 @@ fn idle_gateway0<Call: Callback>(
         call,
         connect_count,
     ) {
-        let cur = current_device.load();
-        tracing::warn!("{:?}", e);
+        Ok(_) => Ok(()),
+        Err(e) => {
+            let _cur = current_device.load();
+            tracing::warn!("{:?}", e);
+            Err(e)
+        }
     }
 }
 fn idle_route0<Call: Callback>(

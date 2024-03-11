@@ -34,7 +34,7 @@ pub struct Config {
     //控制丢包率
     pub packet_loss_rate: Option<f64>,
     pub packet_delay: u32,
-    pub timeout: u64, // 启动超时结束
+    pub timeout: usize, // 启动超时结束
 }
 
 impl Config {
@@ -62,7 +62,7 @@ impl Config {
         dll_path: Option<String>,
         packet_loss_rate: Option<f64>,
         packet_delay: u32,
-        timeout: Option<u64>,
+        timeout: Option<usize>,
     ) -> Result<Self> {
         let stuns = match stuns {
             Some(servers) => {
@@ -91,7 +91,7 @@ impl Config {
             return Err(Error::new(ErrorKind::Other, "name too long or is empty"));
         }
         // 默认15秒 3次
-        let timeout = timeout.unwrap_or(15000);
+        let timeout = timeout.unwrap_or(5);
 
         Ok(Self {
             udi,

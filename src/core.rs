@@ -206,7 +206,6 @@ impl With {
             up_counter,
         )?;
 
-        let timeout = Instant::now() + Duration::from_millis(config.timeout);
         maintain::idle_gateway(
             &scheduler,
             context.clone(),
@@ -215,7 +214,7 @@ impl With {
             tcp_socket_sender.clone(),
             call.clone(),
             0,
-            timeout,
+            config.timeout,
             stoper.clone(),
         );
         {
