@@ -154,7 +154,7 @@ pub fn init_context(
     assert!(!ports.is_empty(), "not channel");
     let mut udps = Vec::with_capacity(ports.len());
     for port in &ports {
-        //监听v6+v4双栈，主通道使用同步io
+        //监听v6+v4双栈
         let address: SocketAddr = format!("[::]:{}", port).parse().unwrap();
         let socket = socket2::Socket::new(socket2::Domain::IPV6, socket2::Type::DGRAM, None)?;
 
@@ -162,6 +162,25 @@ pub fn init_context(
             return Err(Error::new(
                 ErrorKind::Other,
                 format!("set_only_v6 failed: {}", &address),
+            ));
+        }
+
+        if let Err(_) = socket.set_only_v6(false) {
+            return Err(Error::new(
+                ErrorKind::Other,
+                format!("set_reuse_address failed: {}", &address),
+            ));
+        }
+        if let Err(_) = socket.set_only_v6(false) {
+            return Err(Error::new(
+                ErrorKind::Other,
+                format!("set_send_buffer_size failed: {}", &address),
+            ));
+        }
+        if let Err(_) = socket.set_only_v6(false) {
+            return Err(Error::new(
+                ErrorKind::Other,
+                format!("set_recv_buffer_size failed: {}", &address),
             ));
         }
 
@@ -173,7 +192,7 @@ pub fn init_context(
         }
 
         let main_channel: UdpSocket = socket.into();
-        main_channel.set_write_timeout(Some(Duration::from_secs(5)))?;
+        main_channel.set_nonblocking(true)?;
         udps.push(main_channel);
     }
     let context = Context::new(
@@ -197,6 +216,13 @@ pub fn init_context(
         ));
     }
 
+    if let Err(_) = socket.set_only_v6(false) {
+        return Err(Error::new(
+            ErrorKind::Other,
+            format!("set_reuse_address failed: {}", &address),
+        ));
+    }
+
     if let Err(_) = socket.bind(&address.into()) {
         if ports[0] == 0 {
             //端口可能冲突，则使用任意端口
@@ -217,7 +243,7 @@ pub fn init_context(
             ));
         }
     }
-    socket.listen(2)?;
+    socket.listen(128)?;
     socket.set_nonblocking(true)?;
     socket.set_nodelay(false)?;
     let tcp_listener = mio::net::TcpListener::from_std(socket.into());

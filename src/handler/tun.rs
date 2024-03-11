@@ -122,16 +122,9 @@ pub fn base_handle(
         return Ok(());
     }
     if dest_ip.is_multicast() {
-        match protocol {
-            Protocol::Udp => {
-                //当作广播处理
-                net_packet.set_destination(Ipv4Addr::BROADCAST);
-                client_cipher.encrypt_ipv4(&mut net_packet)?;
-                broadcast(server_cipher, context, &mut net_packet, &current_device)?;
-            }
-            _ => {}
-        }
-        return Ok(());
+        // 当作广播处理
+        dest_ip = Ipv4Addr::BROADCAST;
+        net_packet.set_destination(Ipv4Addr::BROADCAST);
     }
     if dest_ip.is_broadcast() || current_device.broadcast_ip == dest_ip {
         // 广播 发送到直连目标
@@ -162,7 +155,6 @@ pub fn base_handle(
         proxy_map.send_handle(&mut ipv4_packet)?;
     }
     client_cipher.encrypt_ipv4(&mut net_packet)?;
-    //优先发到直连到地址
     context.send_ipv4_by_id(net_packet.buffer(), &dest_ip, current_device.connect_server)
 }
 

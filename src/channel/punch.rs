@@ -1,12 +1,13 @@
 use mio::net::TcpStream;
 use nat::stun::{NatInfo, NatType};
 use rand::prelude::SliceRandom;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::str::FromStr;
 use std::time::Duration;
+use std::{io, thread};
 
 use crate::channel::context::Context;
 use crate::channel::sender::AcceptSocketSender;
@@ -137,7 +138,7 @@ impl Punch {
                 //预测范围内最多发送max_k1个包
                 let max_k1 = 60;
                 //全局最多发送max_k2个包
-                let max_k2 = 800;
+                let max_k2 = rand::thread_rng().gen_range(600..800);
                 let port = nat_info.public_ports.first().copied().unwrap_or(0);
                 if nat_info.public_port_range < max_k1 * 3 {
                     //端口变化不大时，在预测的范围内随机发送
@@ -155,10 +156,7 @@ impl Punch {
                     };
                     let mut nums: Vec<u16> = (min_port..max_port).collect();
                     nums.push(max_port);
-                    {
-                        let mut rng = rand::thread_rng();
-                        nums.shuffle(&mut rng);
-                    }
+                    nums.shuffle(&mut rand::thread_rng());
                     self.punch_symmetric(&nums[..k], buf, &nat_info.public_ips, max_k1 as usize)?;
                 }
                 let start = *self.port_index.entry(id).or_insert(0);
@@ -186,11 +184,13 @@ impl Punch {
                             continue;
                         }
                         let addr = SocketAddr::V4(SocketAddrV4::new(*ip, port));
-                        self.context.send_main_udp(index, buf, addr)?;
-                        if !is_cone {
+                        if is_cone {
+                            self.context.send_main_udp(index, buf, addr)?;
+                        } else {
                             //只有一方是对称，则对称方要使用全部端口发送数据，符合上述计算的概率
                             self.context.try_send_all(buf, addr);
                         }
+                        thread::sleep(Duration::from_millis(2));
                     }
                     if !is_cone {
                         //对称网络数据只发一遍
@@ -210,6 +210,11 @@ impl Punch {
         max: usize,
     ) -> io::Result<()> {
         let mut count = 0;
+        let index = if self.context.channel_num() == 1 {
+            0
+        } else {
+            rand::thread_rng().gen_range(0..self.context.channel_num())
+        };
         for port in ports {
             for pub_ip in ips {
                 count += 1;
@@ -217,7 +222,8 @@ impl Punch {
                     return Ok(());
                 }
                 let addr = SocketAddr::V4(SocketAddrV4::new(*pub_ip, *port));
-                self.context.send_main_udp(0, buf, addr)?;
+                self.context.send_main_udp(index, buf, addr)?;
+                thread::sleep(Duration::from_millis(2));
             }
         }
         Ok(())

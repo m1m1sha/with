@@ -29,8 +29,11 @@ use crate::{
     config::Config,
     external,
     handler::{
-        self, callback::Callback, maintain, recv::RecvDataHandler, BaseConfigInfo, ConnectStatus,
-        CurrentDeviceInfo, PeerDeviceInfo,
+        self,
+        callback::Callback,
+        maintain::{self, PunchReceiver},
+        recv::RecvDataHandler,
+        BaseConfigInfo, ConnectStatus, CurrentDeviceInfo, PeerDeviceInfo,
     },
     proxy,
 };
@@ -150,7 +153,7 @@ impl With {
             false => None,
         };
 
-        let (punch_sender, punch_receiver) = sync_channel(3);
+        let (punch_sender, punch_receiver) = maintain::punch_channel();
         let peer_nat_info_map: Arc<RwLock<HashMap<Ipv4Addr, NatInfo>>> =
             Arc::new(RwLock::new(HashMap::with_capacity(16)));
         let down_counter =
@@ -267,7 +270,7 @@ pub fn start<Call: Callback>(
     current_device: Arc<AtomicCell<CurrentDeviceInfo>>,
     client_cipher: Cipher,
     server_cipher: Cipher,
-    punch_receiver: Receiver<(Ipv4Addr, NatInfo)>,
+    punch_receiver: PunchReceiver,
     config_info: BaseConfigInfo,
     punch: Punch,
     call: Call,

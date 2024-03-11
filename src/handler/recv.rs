@@ -27,6 +27,8 @@ use nat::stun::{NatInfo, NatTest};
 use protocol::NetPacket;
 use utils::adder::U64Adder;
 
+use super::maintain::PunchSender;
+
 mod client;
 mod server;
 mod turn;
@@ -59,7 +61,7 @@ impl<Call: Callback> RecvDataHandler<Call> {
         config_info: BaseConfigInfo,
         nat_test: NatTest,
         call: Call,
-        punch_sender: SyncSender<(Ipv4Addr, NatInfo)>,
+        punch_sender: PunchSender,
         peer_nat_info_map: Arc<RwLock<HashMap<Ipv4Addr, NatInfo>>>,
         external_route: Route,
         route: AllowRoute,

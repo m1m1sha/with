@@ -67,10 +67,15 @@ fn idle_gateway0<Call: Callback>(
     call: &Call,
     connect_count: &mut usize,
 ) {
-    let cur = current_device.load();
-    if let Err(e) =
-        check_gateway_channel(context, cur, config, tcp_socket_sender, call, connect_count)
-    {
+    if let Err(e) = check_gateway_channel(
+        context,
+        current_device,
+        config,
+        tcp_socket_sender,
+        call,
+        connect_count,
+    ) {
+        let cur = current_device.load();
         tracing::warn!("{:?}", e);
     }
 }
@@ -83,7 +88,7 @@ fn idle_route0<Call: Callback>(
     let cur = current_device.load();
     match idle.next_idle() {
         IdleType::Timeout(ip, route) => {
-            context.remove_route(&ip, route);
+            context.remove_route(&ip, route.route_key());
             if cur.is_gateway(&ip) {
                 //网关路由过期，则需要改变状态
                 let cur = context.change_status(current_device);
@@ -100,20 +105,19 @@ fn idle_route0<Call: Callback>(
 
 fn check_gateway_channel<Call: Callback>(
     context: &Context,
-    current_device: CurrentDeviceInfo,
+    current_device: &AtomicCell<CurrentDeviceInfo>,
     config: &BaseConfigInfo,
     tcp_socket_sender: &AcceptSocketSender<(TcpStream, SocketAddr, Option<Vec<u8>>)>,
     call: &Call,
     count: &mut usize,
 ) -> io::Result<()> {
-    let gateway_route = context
-        .route_table
-        .route_one(&current_device.virtual_gateway);
-    if gateway_route.is_none() {
+    let current_device = context.change_status(current_device);
+    if current_device.status.offline() {
         *count += 1;
         //需要重连
         call.connect(ConnectInfo::new(*count, current_device.connect_server));
         let request_packet = handshaker::handshake_request_packet(config.client_secret)?;
+        tracing::info!("发送握手请求,{:?}", config);
         if let Err(e) = context.send_default(request_packet.buffer(), current_device.connect_server)
         {
             tracing::warn!("{:?}", e);

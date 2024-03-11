@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::net::UdpSocket as StdUdpSocket;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::mpsc::{sync_channel, Receiver};
+use std::sync::Arc;
 use std::{io, thread};
 
 use mio::event::Source;
@@ -23,10 +24,7 @@ pub fn udp_listen<H>(
 where
     H: RecvChannelHandler,
 {
-    //根据通道数创建对应线程进行读取
-    for index in 0..context.channel_num() {
-        main_udp_listen(index, stoper.clone(), recv_handler.clone(), context.clone())?;
-    }
+    main_udp_listen(stoper.clone(), recv_handler.clone(), context.clone())?;
     sub_udp_listen(stoper, recv_handler, context)
 }
 
@@ -143,61 +141,70 @@ where
 }
 
 /// 阻塞监听
-fn main_udp_listen<H>(
-    index: usize,
-    stoper: Stoper,
-    recv_handler: H,
-    context: Context,
-) -> io::Result<()>
+fn main_udp_listen<H>(stoper: Stoper, recv_handler: H, context: Context) -> io::Result<()>
 where
     H: RecvChannelHandler,
 {
-    let port = context.main_udp_socket[index].local_addr()?.port();
-    let context_ = context.clone();
-    let worker = stoper.add_listener(format!("main_udp_listen-{}", index), move || {
-        context_.stop();
-        match StdUdpSocket::bind("127.0.0.1:0") {
-            Ok(udp) => {
-                if let Err(e) = udp.send_to(
-                    b"stop",
-                    SocketAddr::V4(std::net::SocketAddrV4::new(Ipv4Addr::LOCALHOST, port)),
-                ) {
-                    tracing::error!("发送停止消息到udp失败: {:?}", e);
-                }
-            }
-            Err(e) => {
-                tracing::error!("发送停止-绑定udp失败: {:?}", e);
-            }
+    let poll = Poll::new()?;
+    let waker = Arc::new(Waker::new(poll.registry(), NOTIFY)?);
+    let _waker = waker.clone();
+    let worker = stoper.add_listener("main_udp".into(), move || {
+        if let Err(e) = waker.wake() {
+            tracing::error!("{:?}", e);
         }
     })?;
     thread::Builder::new()
-        .name("main_udp读事件处理线程".into())
+        .name("main_udp".into())
         .spawn(move || {
-            if let Err(e) = main_udp_listen0(index, recv_handler, context) {
+            if let Err(e) = main_udp_listen0(poll, recv_handler, context) {
                 tracing::error!("{:?}", e);
             }
+            drop(_waker);
             worker.stop_all();
         })?;
     Ok(())
 }
 
-pub fn main_udp_listen0<H>(index: usize, mut recv_handler: H, context: Context) -> io::Result<()>
+pub fn main_udp_listen0<H>(mut poll: Poll, mut recv_handler: H, context: Context) -> io::Result<()>
 where
     H: RecvChannelHandler,
 {
     let mut buf = [0; BUFFER_SIZE];
-    let udp_socket = &context.main_udp_socket[index];
+    let mut udps = Vec::with_capacity(context.main_udp_socket.len());
+
+    for (index, udp) in context.main_udp_socket.iter().enumerate() {
+        let udp_socket = udp.try_clone()?;
+        udp_socket.set_nonblocking(true)?;
+        let mut mio_udp = UdpSocket::from_std(udp_socket);
+        poll.registry()
+            .register(&mut mio_udp, Token(index + 1), Interest::READABLE)?;
+        udps.push(mio_udp);
+    }
+
+    let mut events = Events::with_capacity(udps.len());
     loop {
-        match udp_socket.recv_from(&mut buf) {
-            Ok((len, addr)) => {
-                if &buf[..len] == b"stop" && context.is_stop() {
-                    return Ok(());
+        poll.poll(&mut events, None)?;
+        for x in events.iter() {
+            let index = match x.token() {
+                NOTIFY => return Ok(()),
+                Token(index) => index - 1,
+            };
+            loop {
+                match udps[index].recv_from(&mut buf) {
+                    Ok((len, addr)) => {
+                        recv_handler.handle(
+                            &mut buf[..len],
+                            RouteKey::new(false, index, addr),
+                            &context,
+                        );
+                    }
+                    Err(e) => {
+                        if e.kind() == io::ErrorKind::WouldBlock {
+                            break;
+                        }
+                        tracing::error!("main_udp_listen_{}={:?}", index, e);
+                    }
                 }
-                recv_handler.handle(&mut buf[..len], RouteKey::new(false, index, addr), &context);
-            }
-            Err(e) => {
-                // 对方掉线等情况
-                tracing::error!("main_udp_listen0: {:?}", e);
             }
         }
     }
