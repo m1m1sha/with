@@ -114,8 +114,17 @@ pub fn clear_network_list() -> Result<()> {
     let network_list =
         hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList")?;
 
-    network_list.delete_subkey("Profiles")?;
-    let signature = network_list.open_subkey("Signatures")?;
-    signature.delete_subkey("Unmanaged")?;
+    let profiles = network_list.open_subkey("Profiles")?;
+
+    for profile in profiles.enum_keys().map(|p| p.unwrap()) {
+        profiles.delete_subkey(profile)?;
+    }
+
+    let signatures = network_list
+        .open_subkey("Signatures")?
+        .open_subkey("Unmanaged")?;
+    for signature in profiles.enum_keys().map(|p| p.unwrap()) {
+        signatures.delete_subkey(signature)?;
+    }
     Ok(())
 }

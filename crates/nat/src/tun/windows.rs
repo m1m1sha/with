@@ -93,7 +93,11 @@ impl Device {
 
         if utils::root::is_elevated() {
             // 未知影响, 但好像没事
-            let _ = util::clear_network_list();
+
+            match util::clear_network_list() {
+                Ok(_) => tracing::info!("clear network profile"),
+                Err(e) => tracing::warn!("clear err: {:?}", e),
+            }
         }
 
         // 此处生成的guid储存于
