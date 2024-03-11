@@ -90,7 +90,8 @@ impl Config {
         if name.is_empty() || name.len() > 128 {
             return Err(Error::new(ErrorKind::Other, "name too long or is empty"));
         }
-        let timeout = timeout.unwrap_or(5000);
+        // 默认15秒 3次
+        let timeout = timeout.unwrap_or(15000);
 
         Ok(Self {
             udi,
