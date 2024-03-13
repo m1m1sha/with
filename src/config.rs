@@ -20,6 +20,7 @@ pub struct Config {
     pub server_encrypt: bool,               // 服务端加密
     pub ports: Option<Vec<u16>>,            // 端口
     pub mtu: u32,                           // mtu
+    pub metric: u16,                        // 网卡跃点
     pub tcp: bool,                          // 强制tcp
     pub ip: Option<Ipv4Addr>,               // 自定义 ip
     pub inbound: Vec<(u32, u32, Ipv4Addr)>, // 入站ip
@@ -50,6 +51,7 @@ impl Config {
         mtu: u32,
         tcp: bool,
         ip: Option<Ipv4Addr>,
+        metric: u16,
         inbound: Vec<(u32, u32, Ipv4Addr)>,
         outbound: Vec<(u32, u32)>,
         latency: bool,
@@ -100,6 +102,7 @@ impl Config {
             server_encrypt,
             ports,
             mtu,
+            metric,
             tcp,
             ip,
             inbound,

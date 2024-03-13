@@ -5,6 +5,7 @@ pub trait IFace {
     fn name(&self) -> Result<String>;
     fn shutdown(&self) -> Result<()>;
     fn set_ip(&self, address: Ipv4Addr, mask: Ipv4Addr) -> Result<()>;
+    fn set_metric(&self, metric: u16) -> Result<()>;
     fn mtu(&self) -> Result<u32>;
     fn set_mtu(&self, value: u32) -> Result<()>;
     fn add_route(&self, dest: Ipv4Addr, netmask: Ipv4Addr, metric: u16) -> Result<()>;

@@ -26,6 +26,7 @@ pub fn create_device(config: &Config) -> io::Result<Arc<Device>> {
             1410
         };
         device.set_mtu(mtu)?;
+        device.set_metric(config.metric)?;
     }
     Ok(device)
 }

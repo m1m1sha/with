@@ -288,6 +288,10 @@ impl IFace for Device {
         netsh::set_interface_ip(self.index, &address, &mask)
     }
 
+    fn set_metric(&self, metric: u16) -> Result<()> {
+        netsh::set_interface_metric(self.index, metric)
+    }
+
     fn mtu(&self) -> Result<u32> {
         Err(Error::from(ErrorKind::Unsupported))
     }
