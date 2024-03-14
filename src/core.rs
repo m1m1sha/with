@@ -22,6 +22,7 @@ use crate::{
     handler::{
         self,
         callback::Callback,
+        handshaker::Handshake,
         maintain::{self, PunchReceiver},
         recv::RecvDataHandler,
         BaseConfigInfo, ConnectStatus, CurrentDeviceInfo, PeerDeviceInfo,
@@ -149,6 +150,7 @@ impl With {
         let down_counter =
             U64Adder::with_capacity(config.ports.as_ref().map(|v| v.len()).unwrap_or_default() + 8);
         let down_count_watcher = down_counter.watch();
+        let handshake = Handshake::new();
         let handler = RecvDataHandler::new(
             rsa_cipher.clone(),
             server_cipher.clone(),
@@ -165,6 +167,7 @@ impl With {
             outbound_route,
             proxy_map.clone(),
             down_counter,
+            handshake.clone(),
         );
 
         // 初始化网络数据通道
@@ -204,6 +207,7 @@ impl With {
             tcp_socket_sender.clone(),
             call.clone(),
             0,
+            handshake,
         );
         {
             let context = context.clone();

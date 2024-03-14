@@ -1,5 +1,7 @@
 use std::net::{Ipv4Addr, SocketAddr};
 
+use crossbeam_utils::atomic::AtomicCell;
+
 pub mod callback;
 pub mod handshaker;
 pub mod maintain;
@@ -199,5 +201,19 @@ impl CurrentDeviceInfo {
     }
     pub fn is_gateway(&self, ip: &Ipv4Addr) -> bool {
         &self.virtual_gateway == ip || ip == &GATEWAY_IP
+    }
+}
+
+pub fn change_status(
+    current_device: &AtomicCell<CurrentDeviceInfo>,
+    connect_status: ConnectStatus,
+) -> CurrentDeviceInfo {
+    loop {
+        let cur = current_device.load();
+        let mut new_info = cur;
+        new_info.status = connect_status;
+        if current_device.compare_exchange(cur, new_info).is_ok() {
+            return new_info;
+        }
     }
 }

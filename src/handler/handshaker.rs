@@ -1,14 +1,41 @@
 use std::io::Result;
+use std::net::SocketAddr;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
+use crossbeam_utils::atomic::AtomicCell;
 use prost::Message;
 
+use crate::channel::context::Context;
 use crate::handler::{GATEWAY_IP, SELF_IP};
 use crate::proto::message::HandshakeRequest;
 use crate::proto::message::SecretHandshakeRequest;
 use cipher::RsaCipher;
 use protocol::body::RSA_ENCRYPTION_RESERVED;
 use protocol::{service, NetPacket, Protocol, Version, MAX_TTL};
-
+#[derive(Clone)]
+pub struct Handshake {
+    time: Arc<AtomicCell<Instant>>,
+}
+impl Handshake {
+    pub fn new() -> Self {
+        Handshake {
+            time: Arc::new(AtomicCell::new(Instant::now() - Duration::from_secs(60))),
+        }
+    }
+    pub fn send(&self, context: &Context, secret: bool, addr: SocketAddr) -> Result<()> {
+        let last = self.time.load();
+        //短时间不重复发送
+        if last.elapsed() < Duration::from_secs(5) {
+            return Ok(());
+        }
+        let request_packet = handshake_request_packet(secret)?;
+        tracing::info!("发送握手请求,secret={},{:?}", secret, addr);
+        context.send_default(request_packet.buffer(), addr)?;
+        self.time.store(Instant::now());
+        Ok(())
+    }
+}
 pub enum HandshakeEnum {
     NotSecret,
     KeyError,

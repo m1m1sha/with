@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::io::{self};
 use std::net::{Ipv4Addr, Ipv6Addr};
-use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
 
 use parking_lot::RwLock;
@@ -135,7 +134,7 @@ impl ClientPacketHandler {
                         || real_dest == current_device.broadcast_ip
                         || real_dest.is_unspecified())
                 {
-                    if !self.route.allow(&ipv4.destination_ip()) {
+                    if !self.route.allow(&real_dest) {
                         //拦截不符合的目标
                         return Ok(());
                     }

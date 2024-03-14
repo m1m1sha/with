@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
-use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
 use std::{io, thread};
 
@@ -27,6 +26,7 @@ use nat::stun::{NatInfo, NatTest};
 use protocol::NetPacket;
 use utils::adder::U64Adder;
 
+use super::handshaker::Handshake;
 use super::maintain::PunchSender;
 
 mod client;
@@ -67,6 +67,7 @@ impl<Call: Callback> RecvDataHandler<Call> {
         route: AllowRoute,
         ip_proxy_map: Option<IpProxyMap>,
         counter: U64Adder,
+        handshake: Handshake,
     ) -> Self {
         let server = ServerPacketHandler::new(
             rsa_cipher,
@@ -78,6 +79,7 @@ impl<Call: Callback> RecvDataHandler<Call> {
             nat_test.clone(),
             call,
             external_route,
+            handshake,
         );
         let client = ClientPacketHandler::new(
             device.clone(),
