@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 use std::io::{self, Error, ErrorKind};
 use std::net::{SocketAddr, UdpSocket};
 use std::str::FromStr;
-use std::time::Duration;
 
 use crate::channel::context::Context;
 use crate::channel::handler::RecvChannelHandler;

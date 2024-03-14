@@ -1,11 +1,9 @@
+use crate::channel::Route;
 use rsa::RsaPublicKey;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::io;
 use std::net::{Ipv4Addr, SocketAddr};
-
-use crate::channel::context::RouteTable;
-use crate::channel::Route;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeviceInfo {

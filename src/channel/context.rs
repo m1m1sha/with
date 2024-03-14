@@ -13,7 +13,6 @@ use rand::Rng;
 
 use crate::channel::sender::{AcceptSocketSender, ChannelSender, PacketSender};
 use crate::channel::{ChannelMode, Route, RouteKey, DEFAULT_RT};
-use crate::handler::{ConnectStatus, CurrentDeviceInfo};
 
 /// 传输通道上下文，持有udp socket、tcp socket和路由信息
 #[derive(Clone)]

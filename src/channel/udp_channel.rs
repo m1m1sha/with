@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::net::UdpSocket as StdUdpSocket;
-use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::mpsc::{sync_channel, Receiver};
 use std::sync::Arc;
 use std::{io, thread};
